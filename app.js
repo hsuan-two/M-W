@@ -475,6 +475,13 @@ function renderCat(cat) {
   } else {
     const track = mk('div', 'slider-track'); track.id = 'track-' + cat;
 
+    items.forEach((item, i) => {
+      const slide = mk('div', 'slide');
+      const img = mk('img', 'item-img'); img.src = item.src; img.alt = cfg.label;
+      slide.appendChild(img);
+      track.appendChild(slide);
+    });
+
     if (hasNoJacketOption) {
       const noSlide = mk('div', 'slide');
       const noCard = mk('div', 'no-jacket-card');
@@ -485,23 +492,17 @@ function renderCat(cat) {
       track.appendChild(noSlide);
     }
 
-    items.forEach((item, i) => {
-      const slide = mk('div', 'slide');
-      const img = mk('img', 'item-img'); img.src = item.src; img.alt = cfg.label;
-      slide.appendChild(img);
-      track.appendChild(slide);
-    });
     wrap.appendChild(track);
 
     const totalSlides = items.length + (hasNoJacketOption ? 1 : 0);
     if (totalSlides > 1) {
       const dots = mk('div', 'dot-row');
-      if (hasNoJacketOption) dots.appendChild(mk('div', 'dot' + (noJacketSelected ? ' active' : '')));
       items.forEach((_, i) => dots.appendChild(mk('div', 'dot' + (i === idx ? ' active' : ''))));
+      if (hasNoJacketOption) dots.appendChild(mk('div', 'dot' + (noJacketSelected ? ' active' : '')));
       wrap.appendChild(dots);
     }
 
-    const visualIdx = hasNoJacketOption ? (idx === -1 ? 0 : idx + 1) : idx;
+    const visualIdx = (hasNoJacketOption && idx === -1) ? items.length : idx;
     requestAnimationFrame(() => {
       const t = document.getElementById('track-' + cat);
       if (t) t.style.transform = 'translateX(-' + visualIdx * 100 + '%)';
@@ -531,18 +532,19 @@ function go(cat, dir) {
   const hasNoJacketOption = (cat === 'jacket');
   let ni;
   if (hasNoJacketOption) {
-    // Range is -1 (no jacket) .. len-1, total slides = len + 1
+    // Visual layout: [item0, item1, ..., itemN-1, no-jacket]
+    // Logical idx: 0..len-1 for real items, -1 for "no jacket" (which sits at visual position len)
     const total = len + 1;
-    const curVisual = S.idx[cat] === -1 ? 0 : S.idx[cat] + 1;
+    const curVisual = S.idx[cat] === -1 ? len : S.idx[cat];
     const nextVisual = (curVisual + dir + total) % total;
-    ni = nextVisual === 0 ? -1 : nextVisual - 1;
+    ni = nextVisual === len ? -1 : nextVisual;
   } else {
     ni = (S.idx[cat] + dir + len) % len;
   }
   S.idx[cat] = ni;
 
   // Animate existing track instead of full re-render (avoids inconsistent transition timing)
-  const visualIdx = hasNoJacketOption ? (ni === -1 ? 0 : ni + 1) : ni;
+  const visualIdx = hasNoJacketOption ? (ni === -1 ? len : ni) : ni;
   const t = document.getElementById('track-' + cat);
   if (t) {
     t.style.transition = 'transform .3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
