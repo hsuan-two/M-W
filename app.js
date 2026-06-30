@@ -928,26 +928,15 @@ function addTag(tag) {
 }
 
 async function analyzeTagsWithAI(imageSrc, cat) {
-  const area = document.getElementById('tags-area');
-  if (!area) return;
-
-  // Show loading in tags area
-  const loading = mk('div');
-  loading.id = 'tag-loading';
-  loading.style.cssText = 'font-size:12px;color:var(--text-muted);text-align:right;';
-  loading.textContent = typeof currentLang !== 'undefined' && currentLang === 'en' ? 'AI analyzing...' : 'AI 分析中...';
-  area.insertBefore(loading, area.firstChild);
+  const catEl = document.getElementById('cf-category');
+  if (!catEl) return;
 
   const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
 
   const geminiKey = getGeminiKey();
   if (!geminiKey) {
     // No API key configured — AI analysis unavailable
-    const catEl = document.getElementById('cf-category');
-    if (catEl && !catEl.textContent) catEl.textContent = lang === 'en' ? 'AI unavailable (no key)' : 'AI 未設定金鑰';
-    const loadEl = document.getElementById('tag-loading');
-    if (loadEl) loadEl.remove();
-    renderTagsArea();
+    if (!catEl.textContent) catEl.textContent = lang === 'en' ? 'AI unavailable (no key)' : 'AI 未設定金鑰';
     return;
   }
 
@@ -956,8 +945,8 @@ async function analyzeTagsWithAI(imageSrc, cat) {
     const mediaType = imageSrc.split(';')[0].split(':')[1] || 'image/png';
 
     const prompt = lang === 'en'
-      ? 'Analyze this clothing image. Return ONLY a JSON object with two fields: "category" (specific type like "short sleeve t-shirt", "jeans", "sneakers") and "tags" (array of 3-5 style/color/fit tags like ["casual","black","oversized"]). No markdown, no other text, just raw JSON.'
-      : '分析這件衣物圖片。只回覆JSON物件，包含兩個欄位："category"（具體類型，例如"短袖T恤"、"牛仔褲"、"運動鞋"）和"tags"（3-5個簡短標籤陣列，例如["休閒","黑色","寬鬆"]）。不要markdown格式，不要其他文字，只回傳純JSON。';
+      ? 'Analyze this clothing image. Return ONLY a JSON object with one field: "category" (a specific clothing type description, like "short sleeve t-shirt", "jeans", "sneakers"). No markdown, no other text, just raw JSON.'
+      : '分析這件衣物圖片。只回覆JSON物件，包含一個欄位："category"（具體類型，例如"短袖T恤"、"牛仔褲"、"運動鞋"）。不要markdown格式，不要其他文字，只回傳純JSON。';
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -973,7 +962,7 @@ async function analyzeTagsWithAI(imageSrc, cat) {
             { inline_data: { mime_type: mediaType, data: base64 } }
           ]
         }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 300 }
+        generationConfig: { temperature: 0.4, maxOutputTokens: 150 }
       })
     });
     clearTimeout(timeoutId);
@@ -993,24 +982,15 @@ async function analyzeTagsWithAI(imageSrc, cat) {
     const clean = text.replace(/```json|```/g, '').trim();
     const result = JSON.parse(clean);
     if (result.category) {
-      const catEl = document.getElementById('cf-category');
-      if (catEl) catEl.textContent = result.category;
-    }
-    if (Array.isArray(result.tags)) {
-      result.tags.forEach(t => { if (!selectedTags.includes(t)) selectedTags.push(t); });
+      catEl.textContent = result.category;
     }
   } catch(e) {
     console.error('AI analyze error:', e);
-    const catEl = document.getElementById('cf-category');
-    if (catEl && (!catEl.textContent || catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing'))) {
+    if (!catEl.textContent || catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing')) {
       catEl.textContent = lang === 'en' ? 'AI analysis failed' : 'AI 辨識失敗';
     }
     console.warn('AI analysis failed:', e.message);
   }
-
-  const loadEl = document.getElementById('tag-loading');
-  if (loadEl) loadEl.remove();
-  renderTagsArea();
 }
 
 // ── Card open/close ───────────────────────────────────────
