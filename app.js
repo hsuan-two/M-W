@@ -85,7 +85,12 @@ function editClosetItem(cat, i) {
   closeAllMenus();
   const item = S.items[cat][i];
   S.eCat = cat; S.eIdx = i; S.pImg = item.src; S.pCat = cat;
-  openCardWith(item);
+  try {
+    openCardWith(item);
+  } catch(e) {
+    console.error('editClosetItem error:', e);
+    alert('開啟編輯畫面時發生錯誤：' + e.message);
+  }
 }
 
 
@@ -827,6 +832,9 @@ function renderSizeSelector(cat) {
   wrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:1;margin-left:8px;';
 
   if (cat === 'shoes') {
+    // Guard against stale data referencing a removed system (e.g. old saves with shoeSystem:'JP')
+    if (!SHOE_SYSTEMS[selectedShoeSystem]) selectedShoeSystem = 'EU';
+
     const sysRow = mk('div'); sysRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;';
     Object.keys(SHOE_SYSTEMS).forEach(sys => {
       const b = mk('button', 'size-system-btn' + (sys === selectedShoeSystem ? ' active' : ''));
@@ -836,7 +844,7 @@ function renderSizeSelector(cat) {
     });
     wrap.appendChild(sysRow);
     const sizeRow = mk('div'); sizeRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;';
-    SHOE_SYSTEMS[selectedShoeSystem].forEach(s => {
+    (SHOE_SYSTEMS[selectedShoeSystem] || SHOE_SYSTEMS.EU).forEach(s => {
       const b = mk('button', 'size-btn' + (s === selectedSize ? ' active' : ''));
       b.textContent = s;
       b.onclick = () => { selectedSize = s; renderSizeSelector(cat); };
@@ -1263,7 +1271,7 @@ function renderClosetGrid() {
       el.appendChild(img);
 
       const editBtn = mk('button');
-      editBtn.style.cssText = 'position:absolute;top:0;right:0;width:40px;height:40px;background:none;border:none;cursor:pointer;z-index:5;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;';
+      editBtn.style.cssText = 'position:absolute;top:0;right:0;width:50%;height:50%;background:none;border:none;cursor:pointer;z-index:5;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;';
       editBtn.innerHTML = '<span style="background:rgba(255,255,255,0.9);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></span>';
       editBtn.onclick = e => { e.stopPropagation(); editClosetItem(cat, i); };
       el.appendChild(editBtn);
