@@ -117,7 +117,7 @@ function renderSettings() {
         <span class="settings-label" style="font-size:13px;">remove.bg API Key</span>
         <input type="text" id="removebg-key-input" value="${localStorage.getItem('removebg-api-key') || ''}" placeholder="貼上 API key"
           style="width:100%;padding:8px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,.12);font-size:13px;font-family:inherit;outline:none;background:#fff;color:#1a1917;"
-          onchange="localStorage.setItem('removebg-api-key', this.value)">
+          onchange="localStorage.setItem('removebg-api-key', this.value); localStorage.removeItem('removebg-usage-data'); renderSettings();">
         <a href="https://www.remove.bg/api" target="_blank" style="font-size:11px;color:#888;">免費申請 →</a>
       </div>
       <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px;border-bottom:none;">
