@@ -83,9 +83,13 @@ function compressImage(dataUrl, maxWidth=600, quality=0.75) {
 
 function editClosetItem(cat, i) {
   closeAllMenus();
-  const item = S.items[cat][i];
-  S.eCat = cat; S.eIdx = i; S.pImg = item.src; S.pCat = cat;
   try {
+    const item = S.items[cat] && S.items[cat][i];
+    if (!item) {
+      alert('找不到這件衣物的資料（可能已損毀）。cat=' + cat + ' index=' + i);
+      return;
+    }
+    S.eCat = cat; S.eIdx = i; S.pImg = item.src; S.pCat = cat;
     openCardWith(item);
   } catch(e) {
     console.error('editClosetItem error:', e);
@@ -1273,7 +1277,15 @@ function renderClosetGrid() {
       const editBtn = mk('button');
       editBtn.style.cssText = 'position:absolute;top:0;right:0;width:50%;height:50%;background:none;border:none;cursor:pointer;z-index:5;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;';
       editBtn.innerHTML = '<span style="background:rgba(255,255,255,0.9);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></span>';
-      editBtn.onclick = e => { e.stopPropagation(); editClosetItem(cat, i); };
+      editBtn.onclick = e => {
+        e.stopPropagation();
+        try {
+          editClosetItem(cat, i);
+        } catch(err) {
+          console.error('editBtn onclick error:', err);
+          alert('點擊編輯按鈕時發生錯誤：' + err.message);
+        }
+      };
       el.appendChild(editBtn);
 
       el.addEventListener('click', ev => { if (ev.target.closest('.item-menu-wrap')) return; switchTab('ootd'); S.idx[cat] = i; renderCat(cat); });
