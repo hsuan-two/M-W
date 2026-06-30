@@ -79,11 +79,7 @@ function openOOTD() {
 }
 
 function closeOOTD() {
-  document.getElementById('card-view').style.display = 'none';
-  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-  const tabEl = document.getElementById('tab-ootd');
-  if (tabEl) tabEl.classList.add('active');
-  setView('outfit');
+  switchTab('ootd');
 }
 
 function ootdPickTemplate(n) {

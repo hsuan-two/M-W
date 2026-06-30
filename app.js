@@ -629,6 +629,14 @@ function getRemoveBgUsage() {
   return data.count;
 }
 
+function getRemoveBgDaysUntilReset() {
+  const data = getRemoveBgUsageData();
+  if (!data.cycleStart) return null; // no cycle started yet
+  const daysSinceStart = (Date.now() - data.cycleStart) / (1000 * 60 * 60 * 24);
+  if (daysSinceStart >= 30) return null; // already reset, no active cycle
+  return Math.ceil(30 - daysSinceStart);
+}
+
 function trackRemoveBgUsage() {
   let data = getRemoveBgUsageData();
   const now = Date.now();
@@ -1116,31 +1124,7 @@ function renderClosetGrid() {
     }
 
     const row = mk('div');
-    row.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;';
-
-    // JS gesture lock: only let this row capture horizontal swipes.
-    // If the very first move is more vertical than horizontal, disable this row's
-    // own scrolling for that gesture so the page can scroll vertically instead.
-    let gestureStartX = 0, gestureStartY = 0, gestureLocked = null;
-    row.addEventListener('touchstart', e => {
-      gestureStartX = e.touches[0].clientX;
-      gestureStartY = e.touches[0].clientY;
-      gestureLocked = null;
-    }, { passive: true });
-    row.addEventListener('touchmove', e => {
-      if (gestureLocked === null) {
-        const dx = Math.abs(e.touches[0].clientX - gestureStartX);
-        const dy = Math.abs(e.touches[0].clientY - gestureStartY);
-        if (dx > 5 || dy > 5) {
-          gestureLocked = dx > dy ? 'x' : 'y';
-          row.style.touchAction = gestureLocked === 'x' ? 'pan-x' : 'pan-y';
-        }
-      }
-    }, { passive: true });
-    row.addEventListener('touchend', () => {
-      // reset to default so next gesture re-evaluates from scratch
-      row.style.touchAction = 'pan-x';
-    }, { passive: true });
+    row.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;touch-action:pan-x;overscroll-behavior-x:contain;';
 
     items.forEach((item, i) => {
       const el = mk('div', 'closet-item');
@@ -1150,8 +1134,8 @@ function renderClosetGrid() {
       el.appendChild(img);
 
       const editBtn = mk('button');
-      editBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(255,255,255,0.9);border:none;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;box-shadow:0 1px 4px rgba(0,0,0,.15);';
-      editBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>';
+      editBtn.style.cssText = 'position:absolute;top:0;right:0;width:40px;height:40px;background:none;border:none;cursor:pointer;z-index:5;display:flex;align-items:flex-start;justify-content:flex-end;padding:4px;';
+      editBtn.innerHTML = '<span style="background:rgba(255,255,255,0.9);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></span>';
       editBtn.onclick = e => { e.stopPropagation(); editClosetItem(cat, i); };
       el.appendChild(editBtn);
 

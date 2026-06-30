@@ -44,6 +44,7 @@ function renderSettings() {
   const rbgUsed = (typeof getRemoveBgUsage === 'function') ? getRemoveBgUsage() : 0;
   const rbgPct = Math.min(100, Math.round(rbgUsed / rbgLimit * 100));
   const rbgColor = rbgPct > 80 ? '#d64242' : rbgPct > 60 ? '#f0a500' : '#111';
+  const rbgDaysLeft = (typeof getRemoveBgDaysUntilReset === 'function') ? getRemoveBgDaysUntilReset() : null;
 
   content.innerHTML = `
     <div style="background:#fff;padding:32px 16px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;border-bottom:0.5px solid rgba(0,0,0,.08);">
@@ -97,7 +98,13 @@ function renderSettings() {
         <div style="width:100%;height:6px;background:#f0efed;border-radius:3px;overflow:hidden;">
           <div style="width:${rbgPct}%;height:100%;background:${rbgColor};border-radius:3px;transition:width .3s;"></div>
         </div>
-        <div style="font-size:11px;color:#a8a7a4;">${lang==='en' ? 'Resets every 30 days' : '每 30 天重置一次'}</div>
+        <div style="font-size:11px;color:#a8a7a4;">${
+          rbgDaysLeft === null
+            ? (lang==='en' ? 'Resets every 30 days' : '每 30 天重置一次')
+            : rbgDaysLeft <= 0
+              ? (lang==='en' ? 'Resets today' : '今天重置')
+              : (lang==='en' ? ('Resets in ' + rbgDaysLeft + ' day' + (rbgDaysLeft===1?'':'s')) : (rbgDaysLeft + ' 天後重置'))
+        }</div>
       </div>
 
       <div class="settings-section-label">${L.reminder}</div>
