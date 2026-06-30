@@ -133,7 +133,8 @@ function doSearch(q) {
     cell.appendChild(img);
     const lbl = mk('div');
     lbl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.35);color:#fff;font-size:9px;padding:3px;text-align:center;';
-    lbl.textContent = (item.brand || '') + (item.brand && item.category ? ' · ' : '') + (item.category || CATS[cat].label);
+    const validCat = (typeof isValidCategory === 'function' && isValidCategory(item.category)) ? item.category : '';
+    lbl.textContent = (item.brand || '') + (item.brand && validCat ? ' · ' : '') + (validCat || CATS[cat].label);
     cell.appendChild(lbl);
     cell.onclick = () => { closeSearch(); switchTab('ootd'); S.idx[cat] = i; renderCat(cat); };
     grid.appendChild(cell);
@@ -1085,11 +1086,22 @@ function reanalyzeCategory() {
 }
 
 // ── Card open/close ───────────────────────────────────────
+// Old placeholder strings from previous app versions that should be treated as "no real category"
+const INVALID_CATEGORY_TEXTS = [
+  'Analyzing...', 'AI 辨識中...', '點擊輸入', 'Tap to edit',
+  'AI 辨識失敗', 'AI analysis failed', 'AI 未設定金鑰', 'AI unavailable (no key)',
+];
+function isValidCategory(cat) {
+  if (!cat) return false;
+  return !INVALID_CATEGORY_TEXTS.includes(cat.trim());
+}
+
 function openCardWith(item) {
   document.getElementById('card-img').src = item.src;
   document.getElementById('cf-date').textContent = item.date || new Date().toLocaleDateString('zh-TW');
   const catEl = document.getElementById('cf-category');
-  if (catEl) catEl.textContent = item.category || (!item.tags && item.src ? (currentLang === 'en' ? 'Analyzing...' : 'AI 辨識中...') : '');
+  const hasRealCategory = isValidCategory(item.category);
+  if (catEl) catEl.textContent = hasRealCategory ? item.category : (currentLang === 'en' ? 'Analyzing...' : 'AI 辨識中...');
   selectedSeasons = item.season ? item.season.split(',').map(s=>s.trim()).filter(Boolean) : [];
   renderSeasonChips();
   selectedBrand = item.brand || '';
@@ -1101,11 +1113,11 @@ function openCardWith(item) {
   // Tags
   selectedTags = item.tags ? item.tags.split(',').map(t=>t.trim()).filter(Boolean) : [];
   renderTagsArea();
-  // AI auto-analyze category for genuinely new items only (no category yet, not editing existing)
+  // AI auto-analyze category for genuinely new items only (no valid category yet, not editing existing)
   const isExistingItem = (S.eCat !== null && S.eIdx !== null);
   const reanalyzeBtn = document.getElementById('cf-reanalyze-btn');
 
-  if (!isExistingItem && !item.category && item.src) {
+  if (!isExistingItem && !hasRealCategory && item.src) {
     // Brand new upload — auto-trigger AI analysis
     if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
     compressImage(item.src, 350, 0.6).then(compressed => {
@@ -1113,11 +1125,11 @@ function openCardWith(item) {
     }).catch(() => {
       analyzeTagsWithAI(item.src, S.pCat);
     });
-  } else if (isExistingItem && !item.category) {
-    // Existing item with no category (old data) — show manual re-analyze button, don't auto-trigger
+  } else if (isExistingItem && !hasRealCategory) {
+    // Existing item with no valid category (old data / stale placeholder) — show manual re-analyze button
     if (reanalyzeBtn) reanalyzeBtn.style.display = 'inline-block';
   } else {
-    // Existing item that already has a category — no button needed
+    // Existing item that already has a real category — no button needed
     if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
   }
   // Show delete button only for existing items (not new uploads)
