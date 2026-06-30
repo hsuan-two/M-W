@@ -1175,6 +1175,9 @@ function openCardWith(item) {
   const delBtn = document.getElementById('card-delete-btn');
   if (delBtn) delBtn.style.display = (S.eCat !== null && S.eIdx !== null) ? 'block' : 'none';
   document.getElementById('card-modal').classList.add('open');
+  // Reset scroll position to top — otherwise it retains the previous item's scroll offset
+  const itemCard = document.getElementById('item-card');
+  if (itemCard) itemCard.scrollTop = 0;
 }
 function closeCard() {
   document.getElementById('card-modal').classList.remove('open');
