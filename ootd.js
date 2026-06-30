@@ -63,6 +63,7 @@ function getWardrobeItem(cat) {
   try {
     if (typeof S !== 'undefined' && S.items && S.items[cat] && S.items[cat].length) {
       const idx = S.idx && typeof S.idx[cat] === 'number' ? S.idx[cat] : 0;
+      if (idx === -1) return null; // "no jacket today" selected
       const item = S.items[cat][idx] || S.items[cat][0];
       return item.src || item;
     }
@@ -152,12 +153,41 @@ const OOTD_CATS = [
   {cat:'accessory', lbl:'配飾'},
 ];
 
+// Track which non-accessory categories are already used on the current card,
+// so the picker can exclude them (accessory itself has no such limit).
+let ootdUsedCats = {};
+
+function ootdResetUsedCats() { ootdUsedCats = {}; }
+
+function ootdMarkCatUsed(cat, used) {
+  if (cat === 'accessory') return; // accessory can be used multiple times
+  if (used) ootdUsedCats[cat] = true;
+  else delete ootdUsedCats[cat];
+}
+
+// Returns true if there's a real (non-empty) wardrobe item for this category
+function ootdHasItem(cat) {
+  return !!getWardrobeItem(cat);
+}
+
+// Smart default category for a slot: if jacket has no item, fall back to accessory.
+// If accessory also has no item, just stay on jacket (will render blank with picker).
+function ootdSmartDefaultCat(defaultCat, defaultLbl) {
+  if (defaultCat === 'jacket' && !ootdHasItem('jacket')) {
+    if (ootdHasItem('accessory')) return { cat: 'accessory', lbl: '配飾' };
+  }
+  return { cat: defaultCat, lbl: defaultLbl };
+}
+
 function ootdCatCell(defaultCat, defaultLbl, coverFit) {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:relative;width:100%;height:100%;overflow:hidden;background:#fff;cursor:pointer;display:block;';
 
-  let currentCat = defaultCat;
-  let currentLbl = defaultLbl;
+  // Apply smart fallback (jacket → accessory) before first render
+  const smart = ootdSmartDefaultCat(defaultCat, defaultLbl);
+  let currentCat = smart.cat;
+  let currentLbl = smart.lbl;
+  ootdMarkCatUsed(currentCat, true);
 
   function renderCell(src) {
     wrap.innerHTML = '';
@@ -208,21 +238,33 @@ function ootdCatCell(defaultCat, defaultLbl, coverFit) {
     panel.appendChild(title);
 
     OOTD_CATS.forEach(({cat, lbl}) => {
+      // Exclude categories already used elsewhere on this card (except accessory, and except the slot's own current category)
+      const isUsedElsewhere = cat !== 'accessory' && cat !== currentCat && ootdUsedCats[cat];
       const btn = document.createElement('button');
-      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:13px 16px;border:none;background:' + (cat===currentCat?'#f5f4f2':'#fff') + ';font-size:14px;font-family:inherit;color:#1a1917;cursor:pointer;border-bottom:0.5px solid rgba(0,0,0,.06);';
+      const isDisabled = isUsedElsewhere;
+      btn.style.cssText = 'display:flex;align-items:center;width:100%;padding:13px 16px;border:none;background:' + (cat===currentCat?'#f5f4f2':'#fff') + ';font-size:14px;font-family:inherit;color:' + (isDisabled ? '#c4c2bd' : '#1a1917') + ';cursor:' + (isDisabled ? 'not-allowed' : 'pointer') + ';border-bottom:0.5px solid rgba(0,0,0,.06);';
       btn.textContent = lbl;
-      if (cat === currentCat) {
+      if (isDisabled) {
+        const used = document.createElement('span');
+        used.textContent = ' (已使用)';
+        used.style.cssText = 'margin-left:auto;color:#c4c2bd;font-size:11px;';
+        btn.appendChild(used);
+      } else if (cat === currentCat) {
         const check = document.createElement('span');
         check.textContent = ' ✓';
         check.style.cssText = 'margin-left:auto;color:#888;font-size:12px;';
         btn.appendChild(check);
       }
-      btn.onclick = () => {
-        currentCat = cat;
-        currentLbl = lbl;
-        picker.remove();
-        renderCell(getWardrobeItem(cat));
-      };
+      if (!isDisabled) {
+        btn.onclick = () => {
+          ootdMarkCatUsed(currentCat, false); // free up old category
+          currentCat = cat;
+          currentLbl = lbl;
+          ootdMarkCatUsed(currentCat, true); // claim new category
+          picker.remove();
+          renderCell(getWardrobeItem(cat));
+        };
+      }
       panel.appendChild(btn);
     });
 
@@ -237,7 +279,7 @@ function ootdCatCell(defaultCat, defaultLbl, coverFit) {
     document.body.appendChild(picker);
   }
 
-  renderCell(getWardrobeItem(defaultCat));
+  renderCell(getWardrobeItem(currentCat));
   return wrap;
 }
 
@@ -267,6 +309,7 @@ function ootdPhotoCell(label, coverFit) {
 
 // ── Render card using flexbox (not absolute) for reliable html2canvas ──
 function ootdRenderCard(n) {
+  ootdResetUsedCats();
   const card = document.getElementById('ootd-card');
   card.innerHTML = '';
   card.style.cssText = 'width:320px;height:400px;position:relative;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,.12);flex-shrink:0;display:block;';
@@ -337,10 +380,7 @@ function ootdRenderCard(n) {
     const leftW = Math.round(W * 0.44);
     const rightW = W - leftW;
     const cellH = Math.floor(H / 4);
-    const hasJacket = getWardrobeItem('jacket');
-    const leftSlots = hasJacket
-      ? [{cat:'top',lbl:'上著'},{cat:'bottom',lbl:'下著'},{cat:'jacket',lbl:'外套'},{cat:'shoes',lbl:'鞋子'}]
-      : [{cat:'accessory',lbl:'配飾'},{cat:'top',lbl:'上著'},{cat:'bottom',lbl:'下著'},{cat:'shoes',lbl:'鞋子'}];
+    const leftSlots = [{cat:'top',lbl:'上著'},{cat:'bottom',lbl:'下著'},{cat:'jacket',lbl:'外套'},{cat:'shoes',lbl:'鞋子'}];
 
     leftSlots.forEach(({cat,lbl}, i) => {
       const cell = document.createElement('div');

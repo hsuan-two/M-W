@@ -459,12 +459,25 @@ function renderCat(cat) {
   catLabel.textContent = I18N[currentLang][cat] || cfg.label;
   row.appendChild(catLabel);
 
+  // Jacket gets a special "no jacket" virtual slide prepended (only if there are real items)
+  const hasNoJacketOption = (cat === 'jacket' && items.length > 0);
+  // When hasNoJacketOption, idx -1 represents "no jacket"; real items shift by +1 visually
+  const noJacketSelected = hasNoJacketOption && idx === -1;
+
   if (!items.length) {
     const e = mk('div', 'empty-slot');
-    // no hint text
     wrap.appendChild(e);
   } else {
     const track = mk('div', 'slider-track'); track.id = 'track-' + cat;
+
+    if (hasNoJacketOption) {
+      const noSlide = mk('div', 'slide');
+      const noLabel = mk('div', 'no-jacket-label');
+      noLabel.textContent = currentLang === 'en' ? 'No jacket today' : '今天不穿外套';
+      noSlide.appendChild(noLabel);
+      track.appendChild(noSlide);
+    }
+
     items.forEach((item, i) => {
       const slide = mk('div', 'slide');
       const img = mk('img', 'item-img'); img.src = item.src; img.alt = cfg.label;
@@ -472,14 +485,19 @@ function renderCat(cat) {
       track.appendChild(slide);
     });
     wrap.appendChild(track);
-    if (items.length > 1) {
+
+    const totalSlides = items.length + (hasNoJacketOption ? 1 : 0);
+    if (totalSlides > 1) {
       const dots = mk('div', 'dot-row');
+      if (hasNoJacketOption) dots.appendChild(mk('div', 'dot' + (noJacketSelected ? ' active' : '')));
       items.forEach((_, i) => dots.appendChild(mk('div', 'dot' + (i === idx ? ' active' : ''))));
       wrap.appendChild(dots);
     }
+
+    const visualIdx = hasNoJacketOption ? (idx === -1 ? 0 : idx + 1) : idx;
     requestAnimationFrame(() => {
       const t = document.getElementById('track-' + cat);
-      if (t) t.style.transform = 'translateX(-' + idx * 100 + '%)';
+      if (t) t.style.transform = 'translateX(-' + visualIdx * 100 + '%)';
     });
   }
   row.appendChild(wrap);
@@ -502,19 +520,32 @@ function navBtn(cb, side, hidden) {
 function go(cat, dir) {
   const len = S.items[cat].length;
   if (!len) return;
-  const ni = (S.idx[cat] + dir + len) % len;
+
+  const hasNoJacketOption = (cat === 'jacket');
+  let ni;
+  if (hasNoJacketOption) {
+    // Range is -1 (no jacket) .. len-1, total slides = len + 1
+    const total = len + 1;
+    const curVisual = S.idx[cat] === -1 ? 0 : S.idx[cat] + 1;
+    const nextVisual = (curVisual + dir + total) % total;
+    ni = nextVisual === 0 ? -1 : nextVisual - 1;
+  } else {
+    ni = (S.idx[cat] + dir + len) % len;
+  }
   S.idx[cat] = ni;
+
   // Animate existing track instead of full re-render (avoids inconsistent transition timing)
+  const visualIdx = hasNoJacketOption ? (ni === -1 ? 0 : ni + 1) : ni;
   const t = document.getElementById('track-' + cat);
   if (t) {
     t.style.transition = 'transform .3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    t.style.transform = 'translateX(-' + ni * 100 + '%)';
+    t.style.transform = 'translateX(-' + visualIdx * 100 + '%)';
   }
   // Update dots without full re-render
   const row = document.getElementById(CATS[cat].row);
   if (row) {
     const dots = row.querySelectorAll('.dot');
-    dots.forEach((d, i) => d.classList.toggle('active', i === ni));
+    dots.forEach((d, i) => d.classList.toggle('active', i === visualIdx));
   }
   updateMenuDrop(cat, ni);
 }
