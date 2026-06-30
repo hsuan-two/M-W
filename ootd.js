@@ -3,39 +3,42 @@
 const OOTD_TODAY = new Date().toISOString().slice(0,10).replace(/-/g,'.');
 let ootdWeather = { temp: '--', icon: '🌤️' };
 
-// Get location then fetch weather
-const OWM_KEY = '1866de13e68761cea397d07b00004f4c';
-
-function owmIcon(id) {
-  if (id >= 200 && id < 300) return '🌩️';
-  if (id >= 300 && id < 400) return '🌦️';
-  if (id >= 500 && id < 600) return '🌧️';
-  if (id >= 600 && id < 700) return '❄️';
-  if (id >= 700 && id < 800) return '🌫️';
-  if (id === 800) return '☀️';
-  if (id === 801) return '🌤️';
-  if (id <= 804) return '⛅';
-  return '🌡️';
+// open-meteo.com — free, no API key required
+function meteoIcon(code) {
+  if (code <= 1) return '☀️';
+  if (code <= 3) return '⛅';
+  if (code <= 48) return '🌫️';
+  if (code <= 67) return '🌧️';
+  if (code <= 77) return '❄️';
+  if (code <= 82) return '🌦️';
+  if (code <= 86) return '❄️';
+  return '🌩️';
 }
 
-function fetchOWM(lat, lon) {
-  fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OWM_KEY}`)
-    .then(r => r.json())
+function fetchWeather(lat, lon) {
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=celsius`)
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(d => {
-      const temp = Math.round(d.main.temp);
-      const icon = owmIcon(d.weather[0].id);
+      const temp = Math.round(d.current.temperature_2m);
+      const icon = meteoIcon(d.current.weather_code);
       ootdWeather = { temp, icon };
-    }).catch(() => {});
+    }).catch(e => {
+      console.warn('Weather fetch failed:', e.message);
+      ootdWeather = { temp: '--', icon: '🌤️' };
+    });
 }
 
 function initWeather() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      pos => fetchOWM(pos.coords.latitude, pos.coords.longitude),
-      ()  => fetchOWM(23.0, 120.2) // fallback Tainan
+      pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+      ()  => fetchWeather(23.0, 120.2) // fallback Tainan
     );
   } else {
-    fetchOWM(23.0, 120.2);
+    fetchWeather(23.0, 120.2);
   }
 }
 initWeather();
