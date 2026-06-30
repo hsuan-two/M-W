@@ -342,7 +342,7 @@ function renderAccessoryCol() {
         const del = document.createElement('button');
         del.className = 'acc-del';
         del.innerHTML = '✕';
-        del.onclick = e => { e.stopPropagation(); removeAccPick(s); };
+        del.onclick = e => { e.stopPropagation(); removeAccPick(s - 1); };
         slotEl.appendChild(del);
       } else {
         const e = document.createElement('div');
@@ -472,9 +472,11 @@ function renderCat(cat) {
 
     if (hasNoJacketOption) {
       const noSlide = mk('div', 'slide');
-      const noLabel = mk('div', 'no-jacket-label');
-      noLabel.textContent = currentLang === 'en' ? 'No jacket today' : '今天不穿外套';
-      noSlide.appendChild(noLabel);
+      const noCard = mk('div', 'no-jacket-card');
+      const noSpan = document.createElement('span');
+      noSpan.textContent = currentLang === 'en' ? 'No jacket today' : '今天不穿外套';
+      noCard.appendChild(noSpan);
+      noSlide.appendChild(noCard);
       track.appendChild(noSlide);
     }
 

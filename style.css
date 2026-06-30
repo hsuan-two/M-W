@@ -53,7 +53,19 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Noto San
 .empty-slot { display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; user-select: none; }
 .empty-slot span { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
 .empty-slot small { font-size: 11px; color: var(--text-muted); }
-.no-jacket-label { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted); text-align: center; padding: 0 16px; }
+.no-jacket-card {
+  width: 82%;
+  height: 82%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
+  text-align: center;
+  padding: 0 16px;
+}
+.no-jacket-card span { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
 
 .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; color: var(--text); font-size: 14px; }
 .nav-btn.left { left: 5px; } .nav-btn.right { right: 5px; }
@@ -220,9 +232,9 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Noto San
 
 /* ── Bottom nav tabs ── */
 #bottombar { background: var(--surface); border-top: 0.5px solid var(--border); padding: 6px 0 10px; display: flex; align-items: center; justify-content: space-evenly; position: fixed; bottom: 0; left: 0; right: 0; height: 56px; z-index: 150; max-width: 430px; margin: 0 auto; }
-.nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px 0; font-family: inherit; transition: color .15s; }
-.nav-tab i { font-size: 22px; }
-.nav-tab span { font-size: 10px; letter-spacing: .01em; }
+.nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 8px 0; font-family: inherit; transition: color .15s; }
+.nav-tab.active { color: var(--text-primary); font-weight: 600; }
+.nav-tab span { font-size: 12px; letter-spacing: .01em; }
 .nav-tab.active { color: var(--text-primary); }
 .nav-tab-center { width: 48px; height: 48px; border-radius: 50%; background: var(--text-primary); border: none; cursor: pointer; color: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; margin-top: -8px; box-shadow: 0 2px 10px rgba(0,0,0,.15); }
 .nav-tab-center:active { opacity: .8; }
