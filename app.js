@@ -1004,6 +1004,23 @@ async function analyzeTagsWithAI(imageSrc, cat) {
   }
 }
 
+function reanalyzeCategory() {
+  const catEl = document.getElementById('cf-category');
+  const reanalyzeBtn = document.getElementById('cf-reanalyze-btn');
+  const imgSrc = document.getElementById('card-img').src;
+  if (!imgSrc) return;
+
+  const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+  if (catEl) catEl.textContent = lang === 'en' ? 'Analyzing...' : 'AI 辨識中...';
+  if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
+
+  compressImage(imgSrc, 350, 0.6).then(compressed => {
+    analyzeTagsWithAI(compressed, S.pCat);
+  }).catch(() => {
+    analyzeTagsWithAI(imgSrc, S.pCat);
+  });
+}
+
 // ── Card open/close ───────────────────────────────────────
 function openCardWith(item) {
   document.getElementById('card-img').src = item.src;
@@ -1021,14 +1038,24 @@ function openCardWith(item) {
   // Tags
   selectedTags = item.tags ? item.tags.split(',').map(t=>t.trim()).filter(Boolean) : [];
   renderTagsArea();
-  // AI auto-tag and category for new items only
-  if (!item.tags && item.src) {
-    // Compress before sending to AI — much faster analysis with smaller payload
+  // AI auto-analyze category for genuinely new items only (no category yet, not editing existing)
+  const isExistingItem = (S.eCat !== null && S.eIdx !== null);
+  const reanalyzeBtn = document.getElementById('cf-reanalyze-btn');
+
+  if (!isExistingItem && !item.category && item.src) {
+    // Brand new upload — auto-trigger AI analysis
+    if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
     compressImage(item.src, 350, 0.6).then(compressed => {
       analyzeTagsWithAI(compressed, S.pCat);
     }).catch(() => {
       analyzeTagsWithAI(item.src, S.pCat);
     });
+  } else if (isExistingItem && !item.category) {
+    // Existing item with no category (old data) — show manual re-analyze button, don't auto-trigger
+    if (reanalyzeBtn) reanalyzeBtn.style.display = 'inline-block';
+  } else {
+    // Existing item that already has a category — no button needed
+    if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
   }
   // Show delete button only for existing items (not new uploads)
   const delBtn = document.getElementById('card-delete-btn');
