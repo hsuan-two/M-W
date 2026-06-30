@@ -61,7 +61,11 @@
 
     <!-- Card view - inside app like closet-view -->
     <div id="card-view" style="display:none;position:absolute;top:57px;left:0;right:0;bottom:0;background:var(--bg);z-index:5;flex-direction:column;overflow-y:auto;">
-      <div id="card-step-pick" style="padding:16px;">
+      <div id="card-step-pick" style="padding:0;">
+        <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:0.5px solid var(--border);background:var(--surface);">
+          <button onclick="closeOOTD()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text);padding:0;display:flex;align-items:center;">←</button>
+        </div>
+        <div style="padding:16px;">
         <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;" id="ootd-subtitle" data-zh="選擇卡片風格" data-en="Choose a card style">選擇卡片風格</p>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button class="tmpl-btn" onclick="ootdPickTemplate(1)">
@@ -76,6 +80,7 @@
             <div class="tmpl-thumb"><svg viewBox="0 0 38 48" fill="none"><rect x="1" y="1" width="15" height="10" rx="1" fill="#e8e7e5" stroke="#d3d1c7" stroke-width="0.5"/><rect x="1" y="13" width="15" height="10" rx="1" fill="#e8e7e5" stroke="#d3d1c7" stroke-width="0.5"/><rect x="1" y="25" width="15" height="10" rx="1" fill="#e8e7e5" stroke="#d3d1c7" stroke-width="0.5"/><rect x="1" y="37" width="15" height="10" rx="1" fill="#e8e7e5" stroke="#d3d1c7" stroke-width="0.5"/><rect x="18" y="1" width="19" height="46" rx="2" fill="#e8e7e5" stroke="#d3d1c7" stroke-width="0.5"/></svg></div>
             <div class="tmpl-info"><strong>Card 03 — Split</strong><span id="tmpl-desc-3" data-zh="左欄單品 + 右欄 OOTD 照" data-en="Items left + OOTD photo right">左欄單品 + 右欄 OOTD 照</span></div>
           </button>
+        </div>
         </div>
       </div>
       <div id="card-step-edit" style="display:none;flex:1;flex-direction:column;height:100%;">
@@ -134,7 +139,7 @@
         <img id="card-img" src="" alt="">
       </div>
       <div class="card-body">
-        <div class="card-row"><span class="card-label" data-zh="分類" data-en="Category">分類</span><span class="card-val" id="cf-category" style="color:var(--text-muted);font-size:13px;">AI 辨識中...</span></div>
+        <div class="card-row"><span class="card-label" data-zh="分類" data-en="Category">分類</span><span class="card-val" id="cf-category" onclick="editCategoryField()" style="color:var(--text-muted);font-size:13px;cursor:pointer;">AI 辨識中...</span></div>
         <div class="card-row"><span class="card-label" data-zh="新增日期" data-en="Date Added">新增日期</span><span class="card-val" id="cf-date"></span></div>
         <div class="card-row" id="season-row">
           <span class="card-label" data-zh="季節" data-en="Season">季節</span>

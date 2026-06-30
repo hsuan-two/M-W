@@ -97,7 +97,7 @@ function renderSettings() {
         <div style="width:100%;height:6px;background:#f0efed;border-radius:3px;overflow:hidden;">
           <div style="width:${rbgPct}%;height:100%;background:${rbgColor};border-radius:3px;transition:width .3s;"></div>
         </div>
-        <div style="font-size:11px;color:#a8a7a4;">${lang==='en' ? 'Resets monthly' : '每月重置'}</div>
+        <div style="font-size:11px;color:#a8a7a4;">${lang==='en' ? 'Resets every 30 days' : '每 30 天重置一次'}</div>
       </div>
 
       <div class="settings-section-label">${L.reminder}</div>

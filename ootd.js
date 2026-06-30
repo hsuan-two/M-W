@@ -135,7 +135,7 @@ function ootdTextBlock() {
   const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
   const tagDefault = lang === 'en' ? '#OOTD #MyStyle' : '#OOTD #今日穿搭';
   return `
-    <div style="display:flex;flex-direction:column;gap:3px;padding:0 14px;justify-content:center;height:100%;">
+    <div style="display:flex;flex-direction:column;gap:3px;padding:8px 14px 0;justify-content:flex-start;height:100%;">
       <div contenteditable="true" style="font-family:'Cormorant Garamond',serif;font-size:13px;color:#1a1917;letter-spacing:.04em;outline:none;">${OOTD_TODAY}</div>
       <div contenteditable="true" style="font-family:'Cormorant Garamond',serif;font-size:12px;color:#6b6a67;outline:none;">Weather: ${temp}°C ${icon}</div>
       <div contenteditable="true" style="font-family:'Cormorant Garamond',serif;font-size:11px;color:#a8a7a4;font-style:italic;outline:none;">${tagDefault}</div>

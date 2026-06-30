@@ -309,9 +309,14 @@ function renderAccessoryCol() {
           wrap.appendChild(dots);
         }
         slotEl.appendChild(wrap);
+        // Position track instantly (no transition) on full re-render, since this isn't a user swipe
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(-' + S.accBrowseIdx * 100 + '%)';
         requestAnimationFrame(() => {
-          const tr = document.getElementById('acc-browse-track');
-          if (tr) tr.style.transform = 'translateX(-' + S.accBrowseIdx * 100 + '%)';
+          requestAnimationFrame(() => {
+            const tr = document.getElementById('acc-browse-track');
+            if (tr) tr.style.transition = 'transform .3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+          });
         });
         if (!locked) {
           slotEl.classList.add('browse');
@@ -560,7 +565,10 @@ function editItem(cat, i) {
   S.eCat = cat; S.eIdx = i; S.pImg = item.src; S.pCat = cat; openCardWith(item);
 }
 
-function openUpload() { document.getElementById('upload-modal').classList.add('open'); }
+function openUpload() {
+  switchTab('ootd');
+  document.getElementById('upload-modal').classList.add('open');
+}
 function closeUpload() {
   document.getElementById('upload-modal').classList.remove('open');
   S.selCat = null; document.querySelectorAll('.upload-cat-btn').forEach(b => b.classList.remove('selected'));
@@ -604,34 +612,45 @@ async function handleFile(e) {
   }
 }
 
-// ── remove.bg usage tracking ──────────────────────────────
-function getRemoveBgUsageKey() {
-  const now = new Date();
-  return 'removebg-usage-' + now.getFullYear() + '-' + (now.getMonth() + 1);
+// ── remove.bg usage tracking (30-day rolling window, matches remove.bg's own reset cycle) ──
+function getRemoveBgUsageData() {
+  try {
+    return JSON.parse(localStorage.getItem('removebg-usage-data') || 'null') || { cycleStart: null, count: 0 };
+  } catch(e) { return { cycleStart: null, count: 0 }; }
 }
 
 function getRemoveBgUsage() {
-  const key = getRemoveBgUsageKey();
-  return parseInt(localStorage.getItem(key) || '0', 10);
+  const data = getRemoveBgUsageData();
+  if (!data.cycleStart) return 0;
+  const daysSinceStart = (Date.now() - data.cycleStart) / (1000 * 60 * 60 * 24);
+  if (daysSinceStart >= 30) return 0; // cycle has reset
+  return data.count;
 }
 
 function trackRemoveBgUsage() {
-  const key = getRemoveBgUsageKey();
-  const used = getRemoveBgUsage() + 1;
-  localStorage.setItem(key, String(used));
+  let data = getRemoveBgUsageData();
+  const now = Date.now();
+
+  if (!data.cycleStart || (now - data.cycleStart) / (1000 * 60 * 60 * 24) >= 30) {
+    // Start a new 30-day cycle
+    data = { cycleStart: now, count: 1 };
+  } else {
+    data.count += 1;
+  }
+  localStorage.setItem('removebg-usage-data', JSON.stringify(data));
 
   const limit = 50;
-  const remaining = limit - used;
+  const remaining = limit - data.count;
   const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
 
   if (remaining === 5) {
     alert(lang === 'en'
-      ? 'Only 5 remove.bg uses left this month.'
-      : '本月去背額度只剩 5 次了！');
+      ? 'Only 5 remove.bg uses left in this 30-day cycle.'
+      : '本次 30 天額度只剩 5 次了！');
   } else if (remaining <= 0) {
     alert(lang === 'en'
-      ? 'remove.bg quota used up for this month.'
-      : '本月去背額度已用完！');
+      ? 'remove.bg quota used up for this 30-day cycle.'
+      : '本次 30 天額度已用完！');
   }
 }
 
@@ -722,7 +741,6 @@ const SHOE_SYSTEMS = {
   EU:['35','36','37','38','39','40','41','42','43','44','45','46'],
   US:['4','4.5','5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','12'],
   UK:['2','3','4','5','6','7','8','9','10','11'],
-  JP:['22','22.5','23','23.5','24','24.5','25','25.5','26','26.5','27','28'],
   cm:['22','22.5','23','23.5','24','24.5','25','25.5','26','26.5','27','28'],
 };
 let selectedSize = '';
@@ -997,6 +1015,35 @@ async function analyzeTagsWithAI(imageSrc, cat) {
 }
 
 // ── Card open/close ───────────────────────────────────────
+function editCategoryField() {
+  const catEl = document.getElementById('cf-category');
+  if (!catEl || catEl.tagName === 'INPUT') return;
+  const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+  const currentVal = (catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing')) ? '' : catEl.textContent;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = 'cf-category';
+  input.value = currentVal;
+  input.placeholder = lang === 'en' ? 'e.g. short sleeve t-shirt' : '例如：短袖T恤';
+  input.style.cssText = 'border:none;border-bottom:1px solid var(--border-strong);background:transparent;font-size:13px;outline:none;color:var(--text-primary);font-family:inherit;text-align:right;width:140px;';
+
+  catEl.replaceWith(input);
+  input.focus();
+
+  function commit() {
+    const span = document.createElement('span');
+    span.className = 'card-val';
+    span.id = 'cf-category';
+    span.onclick = editCategoryField;
+    span.style.cssText = 'color:var(--text-muted);font-size:13px;cursor:pointer;';
+    span.textContent = input.value.trim();
+    input.replaceWith(span);
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+}
+
 function openCardWith(item) {
   document.getElementById('card-img').src = item.src;
   document.getElementById('cf-date').textContent = item.date || new Date().toLocaleDateString('zh-TW');

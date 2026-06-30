@@ -54,7 +54,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Noto San
 .empty-slot span { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
 .empty-slot small { font-size: 11px; color: var(--text-muted); }
 .no-jacket-card {
-  width: 82%;
+  width: 60%;
   height: 82%;
   display: flex;
   align-items: center;
