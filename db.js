@@ -103,3 +103,43 @@ async function dbExportAll() {
   });
   return { wardrobe, calendar, exportDate: new Date().toISOString() };
 }
+
+async function dbImportAll(data) {
+  if (!data || typeof data !== 'object') throw new Error('Invalid import data');
+
+  // Merge wardrobe items category-by-category (avoid overwriting existing data)
+  if (data.wardrobe && data.wardrobe.items) {
+    const existing = await dbLoadWardrobe();
+    const existingItems = (existing && existing.items) || {};
+    const importedItems = data.wardrobe.items;
+    const merged = {};
+
+    const allCats = new Set([...Object.keys(existingItems), ...Object.keys(importedItems)]);
+    allCats.forEach(cat => {
+      const existingArr = Array.isArray(existingItems[cat]) ? existingItems[cat] : [];
+      const importedArr = Array.isArray(importedItems[cat]) ? importedItems[cat] : [];
+      // Dedupe by image src (same photo = same item)
+      const existingSrcs = new Set(existingArr.map(it => it && (it.src || it)));
+      const newOnes = importedArr.filter(it => !existingSrcs.has(it && (it.src || it)));
+      merged[cat] = [...existingArr, ...newOnes];
+    });
+
+    await dbSaveWardrobe({ items: merged });
+  }
+
+  // Import calendar records (imported records overwrite same-date existing ones, since a date can only have one outfit)
+  if (Array.isArray(data.calendar)) {
+    const d = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = d.transaction('calendar', 'readwrite');
+      const store = tx.objectStore('calendar');
+      data.calendar.forEach(record => {
+        if (record && record.date) store.put(record);
+      });
+      tx.oncomplete = () => resolve();
+      tx.onerror = e => reject(e.target.error);
+    });
+  }
+
+  return true;
+}

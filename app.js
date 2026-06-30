@@ -259,16 +259,10 @@ function renderAccessoryCol() {
   const items = (S.items.accessory || []).filter(item => item && (item.src || typeof item === 'string'));
   const picked = S.accPicked || [];
   const locked = picked.length >= 3;
-  // Sync accBrowseIdx
-  if (S.accBrowseIdx >= items.length) S.accBrowseIdx = Math.max(0, items.length - 1);
+  const hasNoAccessoryOption = items.length > 0;
+  // Sync accBrowseIdx bounds (real items: 0..len-1, "none": -1)
+  if (S.accBrowseIdx !== -1 && S.accBrowseIdx >= items.length) S.accBrowseIdx = Math.max(0, items.length - 1);
 
-  // Slot 0 = browse/select (bottom visually but first in DOM = top of col)
-  // Slots 1,2,3 = picked items newest→oldest
-  // Layout: slot-0 at top of right col = BROWSE, slots 1-3 below
-  // But user said newest at top → slot 3 (last in DOM) = browse, slots 0-2 = picked newest first
-  // Re-read: "最後一個就是最上面" = last picked = top slot
-  // slot-0=top=newest picked, slot-1=second, slot-2=third, slot-3=bottom=browse
-  
   for (let s = 0; s < 4; s++) {
     const slotEl = document.getElementById('acc-slot-' + s);
     if (!slotEl) continue;
@@ -277,7 +271,7 @@ function renderAccessoryCol() {
     slotEl.onclick = null;
 
     if (s === 0) {
-      // slot 0 = browse slot (TOP) - show sliding accessory picker
+      // slot 0 = browse slot (TOP) - show sliding accessory picker + "none" option at the end
       if (!items.length) {
         const e = document.createElement('div');
         e.className = 'acc-empty';
@@ -297,8 +291,23 @@ function renderAccessoryCol() {
           slide.appendChild(img);
           track.appendChild(slide);
         });
+        // "No accessory" virtual slide at the end
+        if (hasNoAccessoryOption) {
+          const noSlide = document.createElement('div');
+          noSlide.className = 'acc-browse-slide';
+          const noCard = document.createElement('div');
+          noCard.className = 'no-jacket-card';
+          noCard.style.width = '78%';
+          const noSpan = document.createElement('span');
+          noSpan.textContent = currentLang === 'en' ? 'No accessory' : '不戴配飾';
+          noCard.appendChild(noSpan);
+          noSlide.appendChild(noCard);
+          track.appendChild(noSlide);
+        }
         wrap.appendChild(track);
-        if (items.length > 1) {
+
+        const totalSlides = items.length + (hasNoAccessoryOption ? 1 : 0);
+        if (totalSlides > 1) {
           const dots = document.createElement('div');
           dots.className = 'acc-dots';
           items.forEach((_, i) => {
@@ -306,19 +315,27 @@ function renderAccessoryCol() {
             d.className = 'acc-dot' + (i === S.accBrowseIdx ? ' active' : '');
             dots.appendChild(d);
           });
+          if (hasNoAccessoryOption) {
+            const d = document.createElement('div');
+            d.className = 'acc-dot' + (S.accBrowseIdx === -1 ? ' active' : '');
+            dots.appendChild(d);
+          }
           wrap.appendChild(dots);
         }
         slotEl.appendChild(wrap);
+
+        const visualIdx = S.accBrowseIdx === -1 ? items.length : S.accBrowseIdx;
         // Position track instantly (no transition) on full re-render, since this isn't a user swipe
         track.style.transition = 'none';
-        track.style.transform = 'translateX(-' + S.accBrowseIdx * 100 + '%)';
+        track.style.transform = 'translateX(-' + visualIdx * 100 + '%)';
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             const tr = document.getElementById('acc-browse-track');
             if (tr) tr.style.transition = 'transform .3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
           });
         });
-        if (!locked) {
+        // Tap to pick — only meaningful when on a real item (not "no accessory" slide) and not locked
+        if (!locked && S.accBrowseIdx !== -1) {
           slotEl.classList.add('browse');
           slotEl.onclick = () => pickAccessory();
         }
@@ -327,9 +344,10 @@ function renderAccessoryCol() {
         wrap.addEventListener('touchend', e => {
           const dx = e.changedTouches[0].clientX - tx;
           if (Math.abs(dx) > 30) {
-            const len = items.length;
-            const ni = (S.accBrowseIdx + (dx < 0 ? 1 : -1) + len) % len;
-            S.accBrowseIdx = ni;
+            const total = items.length + (hasNoAccessoryOption ? 1 : 0);
+            const curVisual = S.accBrowseIdx === -1 ? items.length : S.accBrowseIdx;
+            const nextVisual = (curVisual + (dx < 0 ? 1 : -1) + total) % total;
+            S.accBrowseIdx = nextVisual === items.length ? -1 : nextVisual;
             renderAccessoryCol();
           }
         }, { passive: true });
@@ -361,6 +379,7 @@ function renderAccessoryCol() {
 
 function pickAccessory() {
   if (S.items.accessory.length === 0) return;
+  if (S.accBrowseIdx === -1) return; // "no accessory" slide selected, nothing to pick
   if (S.accPicked.length >= 3) return;
   const idx = S.accBrowseIdx;
   // avoid picking same item twice

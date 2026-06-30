@@ -16,14 +16,16 @@ function renderSettings() {
           version: '版本', tapToChange: '點擊更換頭像', editName: '輸入名稱',
           storage: '儲存空間', storageUsed: '已使用', reminder: '每日穿搭提醒',
           reminderTime: '提醒時間', data: '資料管理', export: '匯出資料',
-          exportDesc: '下載 JSON 備份', clear: '清除所有資料',
+          exportDesc: '下載 JSON 備份', import: '匯入資料', importDesc: '從備份檔案還原',
+          clear: '清除所有資料',
           clearDesc: '刪除所有衣物紀錄', clearConfirm: '確定要清除所有資料嗎？此動作無法復原！',
           cleared: '已清除所有資料', exported: '資料已匯出' },
     en: { profile: 'Profile', name: 'Name', language: 'Language', about: 'About',
           version: 'Version', tapToChange: 'Tap to change', editName: 'Enter name',
           storage: 'Storage', storageUsed: 'Used', reminder: 'Daily Outfit Reminder',
           reminderTime: 'Reminder Time', data: 'Data', export: 'Export Data',
-          exportDesc: 'Download JSON backup', clear: 'Clear All Data',
+          exportDesc: 'Download JSON backup', import: 'Import Data', importDesc: 'Restore from backup file',
+          clear: 'Clear All Data',
           clearDesc: 'Delete all wardrobe items', clearConfirm: 'Clear all data? This cannot be undone!',
           cleared: 'All data cleared', exported: 'Data exported' },
   }[lang];
@@ -140,6 +142,10 @@ function renderSettings() {
         <span class="settings-label"><i class="ti ti-download" style="font-size:18px;"></i> ${L.export}</span>
         <span style="font-size:12px;color:#a8a7a4;">${L.exportDesc}</span>
       </div>
+      <div class="settings-row" style="cursor:pointer;" onclick="document.getElementById('import-file-input').click()">
+        <span class="settings-label"><i class="ti ti-upload" style="font-size:18px;"></i> ${L.import}</span>
+        <span style="font-size:12px;color:#a8a7a4;">${L.importDesc}</span>
+      </div>
       <div class="settings-row" style="border-bottom:none;cursor:pointer;" onclick="clearAllData()">
         <span class="settings-label" style="color:#d64242;"><i class="ti ti-trash" style="font-size:18px;"></i> ${L.clear}</span>
         <span style="font-size:12px;color:#a8a7a4;">${L.clearDesc}</span>
@@ -194,10 +200,45 @@ function renderSettings() {
     });
     document.body.appendChild(inp);
   }
+
+  // Import data file input
+  if (!document.getElementById('import-file-input')) {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.id = 'import-file-input'; inp.accept = 'application/json,.json';
+    inp.style.display = 'none';
+    inp.addEventListener('change', e => {
+      const file = e.target.files[0]; e.target.value = '';
+      if (!file) return;
+      handleImportFile(file);
+    });
+    document.body.appendChild(inp);
+  }
 }
 
 function changeAvatar() {
   document.getElementById('avatar-file-input').click();
+}
+
+async function handleImportFile(file) {
+  const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    const confirmMsg = lang === 'en'
+      ? 'This will merge the backup with your current wardrobe (duplicates skipped). Continue?'
+      : '這會把備份檔案的衣物合併進目前的衣櫥（重複的會自動跳過）。確定要匯入嗎？';
+    if (!confirm(confirmMsg)) return;
+
+    await dbImportAll(data);
+
+    alert(lang === 'en' ? 'Import complete! Reloading...' : '匯入完成！即將重新整理...');
+    // Reload to re-initialize in-memory state (S) from the freshly imported IndexedDB data
+    setTimeout(() => window.location.reload(), 800);
+  } catch(e) {
+    console.error('Import error:', e);
+    alert(lang === 'en' ? 'Import failed: invalid file.' : '匯入失敗：檔案格式不正確。');
+  }
 }
 
 function saveName(val) {

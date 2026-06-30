@@ -61,7 +61,17 @@ function ootdPickFile(cb) {
 function getWardrobeItem(cat) {
   // Use current in-memory state S (loaded from IndexedDB) for the currently selected outfit item
   try {
-    if (typeof S !== 'undefined' && S.items && S.items[cat] && S.items[cat].length) {
+    if (typeof S === 'undefined' || !S.items || !S.items[cat]) return null;
+
+    if (cat === 'accessory') {
+      // Accessory uses S.accPicked (actually selected items), NOT the browse slot.
+      // Browse slot is just a preview, not a confirmed choice — use the most recently picked one.
+      if (!S.accPicked || !S.accPicked.length) return null;
+      const item = S.items.accessory[S.accPicked[0]];
+      return item ? (item.src || item) : null;
+    }
+
+    if (S.items[cat].length) {
       const idx = S.idx && typeof S.idx[cat] === 'number' ? S.idx[cat] : 0;
       if (idx === -1) return null; // "no jacket today" selected
       const item = S.items[cat][idx] || S.items[cat][0];
