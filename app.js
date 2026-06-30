@@ -875,7 +875,7 @@ async function analyzeTagsWithAI(imageSrc, cat) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
@@ -947,7 +947,7 @@ function openCardWith(item) {
   // AI auto-tag and category for new items only
   if (!item.tags && item.src) {
     // Compress before sending to AI — much faster analysis with smaller payload
-    compressImage(item.src, 500, 0.7).then(compressed => {
+    compressImage(item.src, 350, 0.6).then(compressed => {
       analyzeTagsWithAI(compressed, S.pCat);
     }).catch(() => {
       analyzeTagsWithAI(item.src, S.pCat);
