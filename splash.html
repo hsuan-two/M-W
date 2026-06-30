@@ -77,30 +77,55 @@
   </div>
 </div>
 <script>
-document.fonts.ready.then(() => {
+function startSplashAnimation() {
   const w = document.getElementById('w-letter');
   const txt = document.getElementById('text-wrap');
+  if (!w || !txt) { window.location.href = 'index.html'; return; }
 
   // Step 0: fade in W
   w.style.transition = 'opacity 0.5s ease';
   w.style.opacity = '1';
 
-  // Step 1: hold 1.8s then slowly fade out
+  // Step 1: hold then slowly fade out
   setTimeout(() => {
     w.style.transition = 'opacity 1s ease';
     w.style.opacity = '0';
-  }, 1800);
+  }, 1600);
 
   // Step 2: fade in text as W fades
   setTimeout(() => {
     txt.classList.add('fadein');
-  }, 2400);
+  }, 2200);
 
   // Step 3: go to app
   setTimeout(() => {
     window.location.href = 'index.html';
-  }, 4300);
-});
+  }, 4000);
+}
+
+// Safety net: if fonts.ready never resolves (slow network, font load failure, etc.),
+// force the splash to start anyway after 1.5s so the user is never stuck here.
+let started = false;
+function safeStart() {
+  if (started) return;
+  started = true;
+  startSplashAnimation();
+}
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(safeStart).catch(safeStart);
+} else {
+  safeStart();
+}
+setTimeout(safeStart, 1500); // hard fallback regardless of font state
+
+// Absolute last resort: if something above still fails for any reason,
+// force navigation after 6 seconds no matter what.
+setTimeout(() => {
+  if (window.location.pathname.includes('splash')) {
+    window.location.href = 'index.html';
+  }
+}, 6000);
 </script>
 </body>
 </html>
