@@ -423,6 +423,26 @@ function saveState() {
   dbSaveWardrobe({ items: S.items }).catch(e => {
     console.error('saveState error:', e);
   });
+  checkStorageQuota();
+}
+
+let lastStorageWarnTime = 0;
+function checkStorageQuota() {
+  if (!navigator.storage || !navigator.storage.estimate) return;
+  navigator.storage.estimate().then(est => {
+    if (!est.quota) return;
+    const pct = est.usage / est.quota;
+    const now = Date.now();
+    // Only warn once per session-ish (avoid spamming on every save)
+    if (pct > 0.8 && now - lastStorageWarnTime > 60000) {
+      lastStorageWarnTime = now;
+      const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+      const pctNum = Math.round(pct * 100);
+      alert(lang === 'en'
+        ? `Storage is ${pctNum}% full. Consider exporting or removing old items.`
+        : `儲存空間已使用 ${pctNum}%，建議匯出備份或刪除部分舊衣物。`);
+    }
+  }).catch(() => {});
 }
 
 function renderAll() { OUTFIT_ORDER.forEach(renderCat); renderAccessoryCol(); }
