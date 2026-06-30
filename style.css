@@ -241,9 +241,9 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Noto San
 
 /* ── Size selector ── */
 .size-btn { padding:5px 10px; border-radius:6px; border:0.5px solid var(--border-strong); background:transparent; color:var(--text-secondary); font-size:13px; font-family:inherit; cursor:pointer; transition:all .15s; }
-.size-btn.active { background:var(--text-primary); color:var(--bg); border-color:transparent; }
+.size-btn.active { background:#111111; color:#ffffff; border-color:#111111; font-weight:500; }
 .size-system-btn { padding:4px 8px; border-radius:6px; border:0.5px solid var(--border-strong); background:transparent; color:var(--text-secondary); font-size:11px; font-family:inherit; cursor:pointer; }
-.size-system-btn.active { background:var(--surface2); color:var(--text-primary); }
+.size-system-btn.active { background:#111111; color:#ffffff; border-color:#111111; }
 
 /* ── Add tab center button ── */
 .nav-tab-add { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 0 0 4px; font-family: inherit; }

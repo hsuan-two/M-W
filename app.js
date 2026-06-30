@@ -872,9 +872,13 @@ async function analyzeTagsWithAI(imageSrc, cat) {
       ? 'Analyze this clothing image. Return ONLY a JSON object with two fields: "category" (specific type like "short sleeve t-shirt", "jeans", "sneakers") and "tags" (array of 3-5 style/color/fit tags like ["casual","black","oversized"]). No markdown, no other text, just raw JSON.'
       : '分析這件衣物圖片。只回覆JSON物件，包含兩個欄位："category"（具體類型，例如"短袖T恤"、"牛仔褲"、"運動鞋"）和"tags"（3-5個簡短標籤陣列，例如["休閒","黑色","寬鬆"]）。不要markdown格式，不要其他文字，只回傳純JSON。';
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         contents: [{
           parts: [
@@ -885,6 +889,7 @@ async function analyzeTagsWithAI(imageSrc, cat) {
         generationConfig: { temperature: 0.4, maxOutputTokens: 300 }
       })
     });
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const errBody = await res.text();
@@ -941,7 +946,12 @@ function openCardWith(item) {
   renderTagsArea();
   // AI auto-tag and category for new items only
   if (!item.tags && item.src) {
-    analyzeTagsWithAI(item.src, S.pCat);
+    // Compress before sending to AI — much faster analysis with smaller payload
+    compressImage(item.src, 500, 0.7).then(compressed => {
+      analyzeTagsWithAI(compressed, S.pCat);
+    }).catch(() => {
+      analyzeTagsWithAI(item.src, S.pCat);
+    });
   }
   // Show delete button only for existing items (not new uploads)
   const delBtn = document.getElementById('card-delete-btn');
@@ -956,6 +966,16 @@ document.getElementById('card-modal').addEventListener('click', e => { if (e.tar
 
 async function saveCard() {
   if (!S.pImg || !S.pCat) return;
+
+  // Warn if AI is still analyzing
+  if (document.getElementById('tag-loading')) {
+    const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+    const msg = lang === 'en'
+      ? 'AI is still analyzing. Save anyway?'
+      : 'AI 還在分析中，要繼續儲存嗎？';
+    if (!confirm(msg)) return;
+  }
+
   // Compress image before saving
   let savedSrc = S.pImg;
   try { savedSrc = await compressImage(S.pImg); } catch(e) {}
