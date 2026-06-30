@@ -942,9 +942,9 @@ async function analyzeTagsWithAI(imageSrc, cat) {
 
   const geminiKey = getGeminiKey();
   if (!geminiKey) {
-    // No API key configured — skip AI analysis silently, let user fill manually
+    // No API key configured — AI analysis unavailable
     const catEl = document.getElementById('cf-category');
-    if (catEl && !catEl.textContent) catEl.textContent = lang === 'en' ? 'Tap to edit' : '點擊輸入';
+    if (catEl && !catEl.textContent) catEl.textContent = lang === 'en' ? 'AI unavailable (no key)' : 'AI 未設定金鑰';
     const loadEl = document.getElementById('tag-loading');
     if (loadEl) loadEl.remove();
     renderTagsArea();
@@ -1002,10 +1002,9 @@ async function analyzeTagsWithAI(imageSrc, cat) {
   } catch(e) {
     console.error('AI analyze error:', e);
     const catEl = document.getElementById('cf-category');
-    if (catEl && (!catEl.textContent || catEl.textContent.includes('辨識中'))) {
-      catEl.textContent = lang === 'en' ? 'Tap to edit' : '點擊輸入';
+    if (catEl && (!catEl.textContent || catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing'))) {
+      catEl.textContent = lang === 'en' ? 'AI analysis failed' : 'AI 辨識失敗';
     }
-    // Surface the error so the user can see what's wrong (key issue, quota, etc.)
     console.warn('AI analysis failed:', e.message);
   }
 
@@ -1015,35 +1014,6 @@ async function analyzeTagsWithAI(imageSrc, cat) {
 }
 
 // ── Card open/close ───────────────────────────────────────
-function editCategoryField() {
-  const catEl = document.getElementById('cf-category');
-  if (!catEl || catEl.tagName === 'INPUT') return;
-  const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
-  const currentVal = (catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing')) ? '' : catEl.textContent;
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.id = 'cf-category';
-  input.value = currentVal;
-  input.placeholder = lang === 'en' ? 'e.g. short sleeve t-shirt' : '例如：短袖T恤';
-  input.style.cssText = 'border:none;border-bottom:1px solid var(--border-strong);background:transparent;font-size:13px;outline:none;color:var(--text-primary);font-family:inherit;text-align:right;width:140px;';
-
-  catEl.replaceWith(input);
-  input.focus();
-
-  function commit() {
-    const span = document.createElement('span');
-    span.className = 'card-val';
-    span.id = 'cf-category';
-    span.onclick = editCategoryField;
-    span.style.cssText = 'color:var(--text-muted);font-size:13px;cursor:pointer;';
-    span.textContent = input.value.trim();
-    input.replaceWith(span);
-  }
-  input.addEventListener('blur', commit);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
-}
-
 function openCardWith(item) {
   document.getElementById('card-img').src = item.src;
   document.getElementById('cf-date').textContent = item.date || new Date().toLocaleDateString('zh-TW');
