@@ -445,7 +445,7 @@ async function ootdSave() {
     i.src = src;
   });
 
-  // draw each img
+  // draw each img — respect each image's actual object-fit (cover vs contain)
   const imgs = card.querySelectorAll('img');
   const drawPromises = Array.from(imgs).map(async img => {
     const r = img.getBoundingClientRect();
@@ -456,14 +456,31 @@ async function ootdSave() {
     if (iw <= 0 || ih <= 0) return;
     const loaded = await loadImg(img.src);
     if (!loaded) return;
+
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x, y, iw, ih);
+
+    const computedFit = window.getComputedStyle(img).objectFit || 'contain';
     const ia = loaded.naturalWidth / loaded.naturalHeight;
     const ca = iw / ih;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, iw, ih);
+    ctx.clip();
+
     let dw, dh, dx, dy;
-    if (ia > ca) { dw=iw; dh=iw/ia; dx=x; dy=y+(ih-dh)/2; }
-    else         { dh=ih; dw=ih*ia; dy=y; dx=x+(iw-dw)/2; }
+    if (computedFit === 'cover') {
+      // Fill the cell completely, cropping overflow (matches CSS object-fit: cover)
+      if (ia > ca) { dh = ih; dw = ih * ia; dy = y; dx = x - (dw - iw) / 2; }
+      else         { dw = iw; dh = iw / ia; dx = x; dy = y - (dh - ih) / 2; }
+    } else {
+      // Fit entirely inside the cell, letterboxed (matches CSS object-fit: contain)
+      if (ia > ca) { dw = iw; dh = iw / ia; dx = x; dy = y + (ih - dh) / 2; }
+      else         { dh = ih; dw = ih * ia; dy = y; dx = x + (iw - dw) / 2; }
+    }
     ctx.drawImage(loaded, dx, dy, dw, dh);
+    ctx.restore();
   });
   await Promise.all(drawPromises);
 
@@ -479,22 +496,25 @@ async function ootdSave() {
     ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(W, ty); ctx.stroke();
   }
 
-  // text lines
+  // text lines — read actual computed font size from DOM and scale proportionally,
+  // so text always matches what's visually shown on screen regardless of viewport width
   const textDivs = card.querySelectorAll('[contenteditable]');
   const textStyles = [
-    { size: '13px', color: '#1a1917' },
-    { size: '12px', color: '#6b6a67' },
-    { size: '11px', color: '#a8a7a4', italic: true },
+    { color: '#1a1917' },
+    { color: '#6b6a67' },
+    { color: '#a8a7a4', italic: true },
   ];
   textDivs.forEach((div, i) => {
     const r = div.getBoundingClientRect();
     const x = (r.left - cardRect.left) * scaleX;
     const y = (r.top  - cardRect.top)  * scaleY;
     const st = textStyles[i] || textStyles[0];
-    ctx.font = (st.italic ? 'italic ' : '') + st.size + " 'Cormorant Garamond', Georgia, serif";
+    const computedSize = parseFloat(window.getComputedStyle(div).fontSize) || 13;
+    const scaledSize = computedSize * scaleY; // scale font size to match canvas coordinate system
+    ctx.font = (st.italic ? 'italic ' : '') + scaledSize + "px 'Cormorant Garamond', Georgia, serif";
     ctx.fillStyle = st.color;
     ctx.textBaseline = 'top';
-    ctx.fillText(div.textContent, x + 14, y + 6);
+    ctx.fillText(div.textContent, x + 14 * scaleX, y + 6 * scaleY);
   });
 
   canvas.toBlob(blob => {

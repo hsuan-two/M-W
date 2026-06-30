@@ -575,7 +575,11 @@ async function handleFile(e) {
   const cat = S.selCat; if (!cat) return; closeUpload();
   const rowId = CATS[cat].row;
   const row = document.getElementById(rowId) || document.getElementById('acc-slot-3') || document.body;
-  const ov = mk('div', 'processing-overlay'); ov.innerHTML = '<span>處理中...</span>'; row.appendChild(ov);
+  const ov = mk('div', 'processing-overlay');
+  const ovSpan = document.createElement('span');
+  ovSpan.textContent = currentLang === 'en' ? 'Processing...' : '處理中...';
+  ov.appendChild(ovSpan);
+  row.appendChild(ov);
   try {
     let url;
     const removeBgKey = getRemoveBgKey();
@@ -584,6 +588,7 @@ async function handleFile(e) {
       const res = await fetch('https://api.remove.bg/v1.0/removebg', { method: 'POST', headers: { 'X-Api-Key': removeBgKey }, body: fd });
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error((j.errors?.[0]?.title) || 'API 錯誤'); }
       url = await b2u(await res.blob());
+      trackRemoveBgUsage();
     } else { url = await b2u(file); }
     S.pImg = url; S.pCat = cat; S.eCat = null; S.eIdx = null;
     if (row.contains(ov)) row.removeChild(ov);
@@ -594,6 +599,37 @@ async function handleFile(e) {
     const fb = await b2u(file).catch(() => null);
     if (fb) { S.pImg = fb; S.pCat = cat; S.eCat = null; S.eIdx = null; openCardWith({ src: fb, name: '', date: '', season: '', brand: '', size: '' }); }
     if (removeBgKey) alert('去背失敗。\n' + err.message);
+  }
+}
+
+// ── remove.bg usage tracking ──────────────────────────────
+function getRemoveBgUsageKey() {
+  const now = new Date();
+  return 'removebg-usage-' + now.getFullYear() + '-' + (now.getMonth() + 1);
+}
+
+function getRemoveBgUsage() {
+  const key = getRemoveBgUsageKey();
+  return parseInt(localStorage.getItem(key) || '0', 10);
+}
+
+function trackRemoveBgUsage() {
+  const key = getRemoveBgUsageKey();
+  const used = getRemoveBgUsage() + 1;
+  localStorage.setItem(key, String(used));
+
+  const limit = 50;
+  const remaining = limit - used;
+  const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+
+  if (remaining === 5) {
+    alert(lang === 'en'
+      ? 'Only 5 remove.bg uses left this month.'
+      : '本月去背額度只剩 5 次了！');
+  } else if (remaining <= 0) {
+    alert(lang === 'en'
+      ? 'remove.bg quota used up for this month.'
+      : '本月去背額度已用完！');
   }
 }
 
@@ -1078,7 +1114,31 @@ function renderClosetGrid() {
     }
 
     const row = mk('div');
-    row.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;touch-action:pan-x;';
+    row.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;';
+
+    // JS gesture lock: only let this row capture horizontal swipes.
+    // If the very first move is more vertical than horizontal, disable this row's
+    // own scrolling for that gesture so the page can scroll vertically instead.
+    let gestureStartX = 0, gestureStartY = 0, gestureLocked = null;
+    row.addEventListener('touchstart', e => {
+      gestureStartX = e.touches[0].clientX;
+      gestureStartY = e.touches[0].clientY;
+      gestureLocked = null;
+    }, { passive: true });
+    row.addEventListener('touchmove', e => {
+      if (gestureLocked === null) {
+        const dx = Math.abs(e.touches[0].clientX - gestureStartX);
+        const dy = Math.abs(e.touches[0].clientY - gestureStartY);
+        if (dx > 5 || dy > 5) {
+          gestureLocked = dx > dy ? 'x' : 'y';
+          row.style.touchAction = gestureLocked === 'x' ? 'pan-x' : 'pan-y';
+        }
+      }
+    }, { passive: true });
+    row.addEventListener('touchend', () => {
+      // reset to default so next gesture re-evaluates from scratch
+      row.style.touchAction = 'pan-x';
+    }, { passive: true });
 
     items.forEach((item, i) => {
       const el = mk('div', 'closet-item');

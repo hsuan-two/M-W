@@ -39,6 +39,12 @@ function renderSettings() {
   const pct = 0;
   const barColor = '#111';
 
+  // remove.bg monthly usage
+  const rbgLimit = 50;
+  const rbgUsed = (typeof getRemoveBgUsage === 'function') ? getRemoveBgUsage() : 0;
+  const rbgPct = Math.min(100, Math.round(rbgUsed / rbgLimit * 100));
+  const rbgColor = rbgPct > 80 ? '#d64242' : rbgPct > 60 ? '#f0a500' : '#111';
+
   content.innerHTML = `
     <div style="background:#fff;padding:32px 16px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;border-bottom:0.5px solid rgba(0,0,0,.08);">
       <div id="avatar-wrap" style="width:80px;height:80px;border-radius:50%;background:#f5f4f2;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;border:0.5px solid rgba(0,0,0,.08);" onclick="changeAvatar()">
@@ -73,7 +79,7 @@ function renderSettings() {
       </div>
 
       <div class="settings-section-label">${L.storage}</div>
-      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;border-bottom:none;">
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
         <div style="display:flex;justify-content:space-between;width:100%;">
           <span style="font-size:14px;color:#6b6a67;">${L.storageUsed}</span>
           <span id="storage-used-text" style="font-size:14px;color:#1a1917;">計算中...</span>
@@ -82,6 +88,16 @@ function renderSettings() {
           <div id="storage-bar" style="width:0%;height:100%;background:#111;border-radius:3px;transition:width .3s;"></div>
         </div>
         <div id="storage-pct-text" style="font-size:11px;color:#a8a7a4;">計算中...</div>
+      </div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;border-bottom:none;">
+        <div style="display:flex;justify-content:space-between;width:100%;">
+          <span style="font-size:14px;color:#6b6a67;">remove.bg ${L.storageUsed}</span>
+          <span style="font-size:14px;color:#1a1917;">${rbgUsed} / ${rbgLimit}</span>
+        </div>
+        <div style="width:100%;height:6px;background:#f0efed;border-radius:3px;overflow:hidden;">
+          <div style="width:${rbgPct}%;height:100%;background:${rbgColor};border-radius:3px;transition:width .3s;"></div>
+        </div>
+        <div style="font-size:11px;color:#a8a7a4;">${lang==='en' ? 'Resets monthly' : '每月重置'}</div>
       </div>
 
       <div class="settings-section-label">${L.reminder}</div>
