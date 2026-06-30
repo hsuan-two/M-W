@@ -1062,15 +1062,21 @@ async function analyzeTagsWithAI(imageSrc, cat) {
   } catch(e) {
     console.error('AI analyze error:', e);
     const isTimeout = e.name === 'AbortError';
-    const shortMsg = isTimeout
-      ? (lang === 'en' ? 'Timed out' : '逾時')
-      : (e.message || '').slice(0, 60);
+    const isRateLimit = (e.message || '').includes('429');
+    let shortMsg;
+    if (isTimeout) shortMsg = lang === 'en' ? 'Timed out' : '逾時';
+    else if (isRateLimit) shortMsg = lang === 'en' ? 'Too many requests, wait a bit' : '請求太頻繁，請稍後再試';
+    else shortMsg = (e.message || '').slice(0, 60);
+
     if (!catEl.textContent || catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing')) {
       catEl.textContent = (lang === 'en' ? 'AI failed: ' : 'AI 辨識失敗：') + shortMsg;
     }
     console.warn('AI analysis failed:', e.message);
   }
 }
+
+let lastAiCallTime = 0;
+const AI_CALL_COOLDOWN_MS = 4000; // minimum gap between AI calls to avoid rate limiting
 
 function reanalyzeCategory() {
   const catEl = document.getElementById('cf-category');
@@ -1079,6 +1085,19 @@ function reanalyzeCategory() {
   if (!imgSrc) return;
 
   const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+
+  const now = Date.now();
+  const elapsed = now - lastAiCallTime;
+  if (elapsed < AI_CALL_COOLDOWN_MS) {
+    const waitSec = Math.ceil((AI_CALL_COOLDOWN_MS - elapsed) / 1000);
+    if (catEl) catEl.textContent = lang === 'en'
+      ? ('Please wait ' + waitSec + 's before retrying')
+      : ('請等待 ' + waitSec + ' 秒後再試');
+    if (reanalyzeBtn) reanalyzeBtn.style.display = 'inline-block';
+    return;
+  }
+  lastAiCallTime = now;
+
   if (catEl) catEl.textContent = lang === 'en' ? 'Analyzing...' : 'AI 辨識中...';
   if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
 
