@@ -141,11 +141,10 @@ function openDayEditor(dateKey, existingRec) {
       const idx = S.idx[cat];
       if (arr && arr[idx]) displayItems.push({ cat, src: arr[idx].src || arr[idx] });
     });
-    if (S.accPicked && S.accPicked.length) {
-      S.accPicked.forEach(i => {
-        if (S.items.accessory[i]) displayItems.push({ cat:'accessory', src: S.items.accessory[i].src || S.items.accessory[i] });
-      });
-    }
+    const activeAccIndices = (typeof getActiveAccessoryIndices === 'function') ? getActiveAccessoryIndices() : (S.accPicked || []);
+    activeAccIndices.forEach(i => {
+      if (S.items.accessory[i]) displayItems.push({ cat:'accessory', src: S.items.accessory[i].src || S.items.accessory[i] });
+    });
   }
 
   const subtitle = document.createElement('p');

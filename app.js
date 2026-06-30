@@ -15,16 +15,60 @@ function compressImage(dataUrl, maxWidth=600, quality=0.75) {
     const isPng = dataUrl.startsWith('data:image/png');
     const img = new Image();
     img.onload = () => {
+      // For transparent PNGs (e.g. removed-bg photos), first crop to the tight
+      // bounding box of non-transparent pixels so the subject is centered with
+      // no leftover empty margin — this is what makes object-fit:contain look
+      // properly centered everywhere the image is displayed.
+      let sourceCanvas = img;
+      let srcW = img.width, srcH = img.height;
+      let cropX = 0, cropY = 0;
+
+      if (isPng) {
+        const probe = document.createElement('canvas');
+        probe.width = img.width; probe.height = img.height;
+        const pctx = probe.getContext('2d');
+        pctx.drawImage(img, 0, 0);
+        try {
+          const { data } = pctx.getImageData(0, 0, probe.width, probe.height);
+          let minX = probe.width, minY = probe.height, maxX = 0, maxY = 0;
+          let found = false;
+          const step = 2; // sample every other pixel for speed
+          for (let y = 0; y < probe.height; y += step) {
+            for (let x = 0; x < probe.width; x += step) {
+              const alpha = data[(y * probe.width + x) * 4 + 3];
+              if (alpha > 10) {
+                found = true;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+              }
+            }
+          }
+          if (found && (maxX - minX) > 4 && (maxY - minY) > 4) {
+            const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.03); // small breathing room
+            cropX = Math.max(0, minX - pad);
+            cropY = Math.max(0, minY - pad);
+            srcW = Math.min(probe.width, maxX + pad) - cropX;
+            srcH = Math.min(probe.height, maxY + pad) - cropY;
+          }
+        } catch(e) {
+          // getImageData can fail on tainted canvas (cross-origin); fall back to full image
+        }
+      }
+
       const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
+      let w = srcW, h = srcH;
       if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!isPng) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+      } else {
+        ctx.drawImage(img, cropX, cropY, srcW, srcH, 0, 0, w, h);
       }
-      ctx.drawImage(img, 0, 0, w, h);
       // PNG for removed-bg images (keep transparency), JPEG for others
       const out = isPng
         ? canvas.toDataURL('image/png')

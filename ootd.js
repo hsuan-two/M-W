@@ -58,16 +58,29 @@ function ootdPickFile(cb) {
   if (ootdFileInput) ootdFileInput.click();
 }
 
+// Returns all currently "active" accessory indices: browse slot (if on a real item) + picked slots, deduped.
+// Browse slot index is included first if it represents a real item (not -1 "no accessory").
+function getActiveAccessoryIndices() {
+  if (typeof S === 'undefined' || !S.items || !S.items.accessory) return [];
+  const picked = S.accPicked || [];
+  const browseIdx = S.accBrowseIdx;
+  const result = [];
+  if (typeof browseIdx === 'number' && browseIdx !== -1 && S.items.accessory[browseIdx]) {
+    result.push(browseIdx);
+  }
+  picked.forEach(i => { if (!result.includes(i)) result.push(i); });
+  return result;
+}
+
 function getWardrobeItem(cat) {
   // Use current in-memory state S (loaded from IndexedDB) for the currently selected outfit item
   try {
     if (typeof S === 'undefined' || !S.items || !S.items[cat]) return null;
 
     if (cat === 'accessory') {
-      // Accessory uses S.accPicked (actually selected items), NOT the browse slot.
-      // Browse slot is just a preview, not a confirmed choice — use the most recently picked one.
-      if (!S.accPicked || !S.accPicked.length) return null;
-      const item = S.items.accessory[S.accPicked[0]];
+      const active = getActiveAccessoryIndices();
+      if (!active.length) return null;
+      const item = S.items.accessory[active[0]];
       return item ? (item.src || item) : null;
     }
 
