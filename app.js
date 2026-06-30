@@ -482,9 +482,21 @@ function navBtn(cb, side, hidden) {
 function go(cat, dir) {
   const len = S.items[cat].length;
   if (!len) return;
-  // Wrap around: last → first, first → last
   const ni = (S.idx[cat] + dir + len) % len;
-  S.idx[cat] = ni; renderCat(cat); updateMenuDrop(cat, ni);
+  S.idx[cat] = ni;
+  // Animate existing track instead of full re-render (avoids inconsistent transition timing)
+  const t = document.getElementById('track-' + cat);
+  if (t) {
+    t.style.transition = 'transform .3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    t.style.transform = 'translateX(-' + ni * 100 + '%)';
+  }
+  // Update dots without full re-render
+  const row = document.getElementById(CATS[cat].row);
+  if (row) {
+    const dots = row.querySelectorAll('.dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === ni));
+  }
+  updateMenuDrop(cat, ni);
 }
 function delItem(cat, i) {
   closeMenus(); S.items[cat].splice(i, 1); S.idx[cat] = Math.max(0, S.idx[cat] - 1);
@@ -840,7 +852,7 @@ async function analyzeTagsWithAI(imageSrc, cat) {
       ? 'Analyze this clothing image. Return ONLY a JSON object with two fields: "category" (specific type like "short sleeve t-shirt", "jeans", "sneakers") and "tags" (array of 3-5 style/color/fit tags like ["casual","black","oversized"]). No markdown, no other text, just raw JSON.'
       : '分析這件衣物圖片。只回覆JSON物件，包含兩個欄位："category"（具體類型，例如"短袖T恤"、"牛仔褲"、"運動鞋"）和"tags"（3-5個簡短標籤陣列，例如["休閒","黑色","寬鬆"]）。不要markdown格式，不要其他文字，只回傳純JSON。';
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -854,26 +866,35 @@ async function analyzeTagsWithAI(imageSrc, cat) {
       })
     });
 
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error('HTTP ' + res.status + ': ' + errBody.slice(0, 200));
+    }
+
     const data = await res.json();
     const text = data.candidates && data.candidates[0] && data.candidates[0].content
       && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
       && data.candidates[0].content.parts[0].text;
 
-    if (text) {
-      const clean = text.replace(/```json|```/g, '').trim();
-      const result = JSON.parse(clean);
-      if (result.category) {
-        const catEl = document.getElementById('cf-category');
-        if (catEl) catEl.textContent = result.category;
-      }
-      if (Array.isArray(result.tags)) {
-        result.tags.forEach(t => { if (!selectedTags.includes(t)) selectedTags.push(t); });
-      }
+    if (!text) throw new Error('No text in response: ' + JSON.stringify(data).slice(0, 200));
+
+    const clean = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+    if (result.category) {
+      const catEl = document.getElementById('cf-category');
+      if (catEl) catEl.textContent = result.category;
+    }
+    if (Array.isArray(result.tags)) {
+      result.tags.forEach(t => { if (!selectedTags.includes(t)) selectedTags.push(t); });
     }
   } catch(e) {
-    console.log('AI analyze error:', e);
+    console.error('AI analyze error:', e);
     const catEl = document.getElementById('cf-category');
-    if (catEl && !catEl.textContent) catEl.textContent = lang === 'en' ? 'Tap to edit' : '點擊輸入';
+    if (catEl && (!catEl.textContent || catEl.textContent.includes('辨識中'))) {
+      catEl.textContent = lang === 'en' ? 'Tap to edit' : '點擊輸入';
+    }
+    // Surface the error so the user can see what's wrong (key issue, quota, etc.)
+    console.warn('AI analysis failed:', e.message);
   }
 
   const loadEl = document.getElementById('tag-loading');
@@ -886,7 +907,7 @@ function openCardWith(item) {
   document.getElementById('card-img').src = item.src;
   document.getElementById('cf-date').textContent = item.date || new Date().toLocaleDateString('zh-TW');
   const catEl = document.getElementById('cf-category');
-  if (catEl) catEl.textContent = item.category || '';
+  if (catEl) catEl.textContent = item.category || (!item.tags && item.src ? (currentLang === 'en' ? 'Analyzing...' : 'AI 辨識中...') : '');
   selectedSeasons = item.season ? item.season.split(',').map(s=>s.trim()).filter(Boolean) : [];
   renderSeasonChips();
   selectedBrand = item.brand || '';
@@ -961,9 +982,9 @@ function renderCloset() {
     b.textContent = lbl; b.dataset.f = f; b.onclick = () => setFilter(f); tabs.appendChild(b);
   });
   // Search button
-  const srch = mk('button', 'closet-tab');
-  srch.innerHTML = '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-  srch.style.cssText = 'flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--text-primary);';
+  const srch = mk('button');
+  srch.innerHTML = '<svg width="16" height="16" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  srch.style.cssText = 'flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#111;background:transparent;border:0.5px solid var(--border-strong);border-radius:50%;width:32px;height:32px;padding:0;cursor:pointer;';
   srch.onclick = () => openSearch();
   tabs.appendChild(srch);
   renderClosetGrid();
@@ -986,7 +1007,7 @@ function renderClosetGrid() {
     }
 
     const row = mk('div');
-    row.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;';
+    row.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;touch-action:pan-x;';
 
     items.forEach((item, i) => {
       const el = mk('div', 'closet-item');

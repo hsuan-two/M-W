@@ -47,9 +47,18 @@ function renderSettings() {
           : `<i class="ti ti-user" style="font-size:36px;color:#a8a7a4;"></i>`}
       </div>
       <div style="font-size:11px;color:#a8a7a4;">${L.tapToChange}</div>
-      <input id="user-name-input" type="text" value="${savedName}" placeholder="${L.editName}"
-        style="border:none;border-bottom:1px solid rgba(0,0,0,.12);background:transparent;font-size:16px;text-align:center;outline:none;color:#1a1917;font-family:inherit;padding:4px 8px;width:200px;"
-        onchange="saveName(this.value)">
+      <div id="name-display-wrap" style="display:flex;align-items:center;gap:6px;min-height:28px;">
+        ${savedName ? `
+          <span id="name-display-text" style="font-size:16px;color:#1a1917;font-family:inherit;">${savedName}</span>
+          <button onclick="enterNameEditMode()" style="background:none;border:none;cursor:pointer;padding:2px;display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+          </button>
+        ` : `
+          <input id="user-name-input" type="text" value="" placeholder="${L.editName}"
+            style="border:none;border-bottom:1px solid rgba(0,0,0,.12);background:transparent;font-size:16px;text-align:center;outline:none;color:#1a1917;font-family:inherit;padding:4px 8px;width:200px;"
+            onchange="saveName(this.value)">
+        `}
+      </div>
     </div>
 
     <div style="padding:0 16px 24px;">
@@ -87,16 +96,6 @@ function renderSettings() {
           onchange="saveReminderTime(this.value)">
       </div>
 
-      <div class="settings-section-label">${L.data}</div>
-      <div class="settings-row" style="cursor:pointer;" onclick="exportData()">
-        <span class="settings-label"><i class="ti ti-download" style="font-size:18px;"></i> ${L.export}</span>
-        <span style="font-size:12px;color:#a8a7a4;">${L.exportDesc}</span>
-      </div>
-      <div class="settings-row" style="border-bottom:none;cursor:pointer;" onclick="clearAllData()">
-        <span class="settings-label" style="color:#d64242;"><i class="ti ti-trash" style="font-size:18px;"></i> ${L.clear}</span>
-        <span style="font-size:12px;color:#a8a7a4;">${L.clearDesc}</span>
-      </div>
-
       <div class="settings-section-label">API Keys</div>
       <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
         <span class="settings-label" style="font-size:13px;">remove.bg API Key</span>
@@ -111,6 +110,16 @@ function renderSettings() {
           style="width:100%;padding:8px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,.12);font-size:13px;font-family:inherit;outline:none;background:#fff;color:#1a1917;"
           onchange="localStorage.setItem('gemini-api-key', this.value)">
         <a href="https://aistudio.google.com" target="_blank" style="font-size:11px;color:#888;">免費申請 →</a>
+      </div>
+
+      <div class="settings-section-label">${L.data}</div>
+      <div class="settings-row" style="cursor:pointer;" onclick="exportData()">
+        <span class="settings-label"><i class="ti ti-download" style="font-size:18px;"></i> ${L.export}</span>
+        <span style="font-size:12px;color:#a8a7a4;">${L.exportDesc}</span>
+      </div>
+      <div class="settings-row" style="border-bottom:none;cursor:pointer;" onclick="clearAllData()">
+        <span class="settings-label" style="color:#d64242;"><i class="ti ti-trash" style="font-size:18px;"></i> ${L.clear}</span>
+        <span style="font-size:12px;color:#a8a7a4;">${L.clearDesc}</span>
       </div>
 
       <div class="settings-section-label">${L.about}</div>
@@ -169,7 +178,25 @@ function changeAvatar() {
 }
 
 function saveName(val) {
-  localStorage.setItem('user-name', val);
+  localStorage.setItem('user-name', val.trim());
+  renderSettings();
+}
+
+function enterNameEditMode() {
+  const wrap = document.getElementById('name-display-wrap');
+  if (!wrap) return;
+  const current = localStorage.getItem('user-name') || '';
+  const lang = typeof currentLang !== 'undefined' ? currentLang : 'zh';
+  const placeholder = lang === 'en' ? 'Enter name' : '輸入名稱';
+  wrap.innerHTML = `
+    <input id="user-name-input" type="text" value="${current}" placeholder="${placeholder}"
+      style="border:none;border-bottom:1px solid rgba(0,0,0,.12);background:transparent;font-size:16px;text-align:center;outline:none;color:#1a1917;font-family:inherit;padding:4px 8px;width:200px;"
+      onchange="saveName(this.value)">
+  `;
+  setTimeout(() => {
+    const inp = document.getElementById('user-name-input');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 50);
 }
 
 // ── Reminder ──────────────────────────────────────────────
