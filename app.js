@@ -1061,8 +1061,12 @@ async function analyzeTagsWithAI(imageSrc, cat) {
     }
   } catch(e) {
     console.error('AI analyze error:', e);
+    const isTimeout = e.name === 'AbortError';
+    const shortMsg = isTimeout
+      ? (lang === 'en' ? 'Timed out' : '逾時')
+      : (e.message || '').slice(0, 60);
     if (!catEl.textContent || catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing')) {
-      catEl.textContent = lang === 'en' ? 'AI analysis failed' : 'AI 辨識失敗';
+      catEl.textContent = (lang === 'en' ? 'AI failed: ' : 'AI 辨識失敗：') + shortMsg;
     }
     console.warn('AI analysis failed:', e.message);
   }
@@ -1091,9 +1095,13 @@ const INVALID_CATEGORY_TEXTS = [
   'Analyzing...', 'AI 辨識中...', '點擊輸入', 'Tap to edit',
   'AI 辨識失敗', 'AI analysis failed', 'AI 未設定金鑰', 'AI unavailable (no key)',
 ];
+const INVALID_CATEGORY_PREFIXES = ['AI 辨識失敗', 'AI failed:'];
 function isValidCategory(cat) {
   if (!cat) return false;
-  return !INVALID_CATEGORY_TEXTS.includes(cat.trim());
+  const trimmed = cat.trim();
+  if (INVALID_CATEGORY_TEXTS.includes(trimmed)) return false;
+  if (INVALID_CATEGORY_PREFIXES.some(p => trimmed.startsWith(p))) return false;
+  return true;
 }
 
 function openCardWith(item) {

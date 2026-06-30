@@ -102,10 +102,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Noto San
 .acc-dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(0,0,0,0.18); transition: all .18s; }
 .acc-dot.active { background: #111111; width: 5px; height: 5px; }
 
-#bottombar { background: var(--surface); border-top: 0.5px solid var(--border); padding: 10px 16px 10px; display: flex; justify-content: flex-end; align-items: center; flex-shrink: 0; }
-#bottombar .upload-btn { font-size: 13px; font-family: inherit; padding: 8px 16px; border-radius: var(--radius); border: none; background: var(--text); color: var(--bg); cursor: pointer; display: flex; align-items: center; gap: 6px; }
-#bottombar .upload-btn:active { opacity: .7; }
-
 .processing-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; z-index: 5; }
 .processing-overlay span { color: #fff; font-size: 13px; background: rgba(0,0,0,.65); padding: 7px 16px; border-radius: 20px; }
 
@@ -177,14 +173,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Noto San
 #closet-tabs::-webkit-scrollbar { display: none; }
 .closet-tab { padding: 6px 14px; border-radius: 20px; border: 0.5px solid var(--border-strong); background: transparent; color: var(--text-secondary); font-size: 13px; font-family: inherit; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all .15s; }
 .closet-tab.active { background: var(--text); color: var(--bg); border-color: transparent; }
-#closet-content { flex: 1; overflow-y: visible; padding: 12px; padding-bottom: 20px; }
+#closet-content { flex: 1; overflow-y: visible; padding: 12px; padding-bottom: 80px; }
 .closet-cat-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); letter-spacing: .05em; margin: 0 0 8px; }
-.closet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-.closet-item { aspect-ratio: 1; border-radius: var(--radius); overflow: visible; background: var(--surface); border: 0.5px solid var(--border); position: relative; cursor: pointer; }
-.closet-item img { width: 100%; height: 100%; object-fit: contain; padding: 6px; border-radius: var(--radius); }
-.closet-item .del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.55); border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; font-size: 11px; opacity: 0; transition: opacity .15s; }
-.closet-item:hover .del { opacity: 1; }
-@media (hover: none) { .closet-item .del { opacity: 0.8; } }
 .closet-empty { font-size: 14px; color: var(--text-muted); padding: 30px 0; text-align: center; }
 
 /* ── Settings ── */
