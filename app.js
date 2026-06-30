@@ -982,7 +982,8 @@ async function analyzeTagsWithAI(imageSrc, cat) {
     const clean = text.replace(/```json|```/g, '').trim();
     const result = JSON.parse(clean);
     if (result.category) {
-      catEl.textContent = result.category;
+      const topLevelLabel = (I18N[currentLang] && I18N[currentLang][cat]) || (CATS[cat] && CATS[cat].label) || cat;
+      catEl.textContent = topLevelLabel + ' > ' + result.category;
     }
   } catch(e) {
     console.error('AI analyze error:', e);
