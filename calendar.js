@@ -204,11 +204,9 @@ function openDayEditor(dateKey, existingRec) {
       alert(lang === 'en' ? 'Please set up an outfit in OOTD tab first.' : '請先到今日穿搭選好搭配！');
       return;
     }
-    const recs = getCalendarRecords();
-    recs[dateKey] = { items: displayItems, date: dateKey };
-    localStorage.setItem('wardrobe-calendar', JSON.stringify(recs));
-    overlay.remove();
-    renderCalendar();
+    dbSaveCalendarRecord(dateKey, { items: displayItems, date: dateKey })
+      .then(() => { overlay.remove(); renderCalendar(); })
+      .catch(e => alert('儲存失敗：' + e.message));
   };
   btnRow.appendChild(saveBtn);
 
