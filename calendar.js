@@ -62,10 +62,7 @@ async function renderCalendar() {
     cell.style.cssText = 'aspect-ratio:1;border-radius:8px;cursor:pointer;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surface);';
 
     if (rec && rec.items && rec.items[0]) {
-      const img = document.createElement('img');
-      img.src = rec.items[0].src;
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.5;';
-      cell.appendChild(img);
+      // removed: outfit thumbnail background. Only show dot indicator below.
     }
 
     if (isToday) {

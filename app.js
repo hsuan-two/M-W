@@ -1037,7 +1037,7 @@ async function analyzeTagsWithAI(imageSrc, cat) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + geminiKey, {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + geminiKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
@@ -1077,7 +1077,9 @@ async function analyzeTagsWithAI(imageSrc, cat) {
     const isRateLimit = (e.message || '').includes('429');
     let shortMsg;
     if (isTimeout) shortMsg = lang === 'en' ? 'Timed out' : '逾時';
-    else if (isRateLimit) shortMsg = lang === 'en' ? 'Too many requests, wait a bit' : '請求太頻繁，請稍後再試';
+    else if (isRateLimit) shortMsg = lang === 'en'
+      ? 'Rate limited — wait 1 min and retry, or wait until 4PM (Taiwan) for daily reset'
+      : '超過限制，等 1 分鐘再試；若持續失敗請等台灣時間下午 4 點後重置';
     else shortMsg = (e.message || '').slice(0, 60);
 
     if (!catEl.textContent || catEl.textContent.includes('辨識中') || catEl.textContent.includes('Analyzing')) {
